@@ -4568,176 +4568,146 @@ const LoginPage = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen w-full flex font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen w-full relative flex items-center" style={{
+      fontFamily: "'Inter', sans-serif",
+      backgroundImage: "url('/login-bg.png')",
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundColor: '#1a9aa8',
+    }}>
 
-      {/* 왼쪽 다크 패널 */}
-      <div
-        className="hidden md:flex flex-col justify-between w-[52%] relative overflow-hidden p-14"
-        style={{
-          backgroundColor: '#0F172A',
-          backgroundImage: `
-            radial-gradient(ellipse 70% 50% at 20% 80%, rgba(59,130,246,0.13) 0%, transparent 60%),
-            radial-gradient(ellipse 50% 40% at 80% 20%, rgba(99,102,241,0.10) 0%, transparent 60%),
-            url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='1' fill='%23ffffff' fill-opacity='0.04'/%3E%3C/svg%3E")
-          `
-        }}
-      >
-        {/* 우측 브랜드 색상 라인 */}
-        <div className="absolute top-0 right-0 bottom-0 w-[3px]" style={{ background: 'linear-gradient(180deg, #3B82F6 0%, #f97316 100%)' }}></div>
-
-        {/* 상단 로고 영역 */}
-        <div>
-          <div className="flex items-center gap-3 mb-16">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #3B82F6, #6366F1)' }}>
-              <Shield size={18} className="text-white" />
-            </div>
-            <div>
-              <div className="text-white font-black text-xl tracking-tight">AX<span style={{ color: '#f97316' }}>GATE</span></div>
-              <div className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: '#475569' }}>SECURITY & BEYOND</div>
-            </div>
-          </div>
-
-          <h1 className="text-4xl font-bold leading-tight mb-5" style={{ color: '#F1F5F9' }}>
-            통합 보안<br />관리 시스템
-          </h1>
-          <p className="text-[15px] leading-relaxed" style={{ color: '#64748B' }}>
-            홈네트워크 안전점검부터 취약점 분석까지<br />
-            신뢰할 수 있는 보안 관제 플랫폼입니다.
-          </p>
-        </div>
-
-        {/* 하단 신뢰 지표 */}
-        <div className="space-y-3">
-          {[
-            { icon: '🔒', label: 'SSL 256-bit 암호화 적용' },
-            { icon: '🛡️', label: '홈네트워크 보안 인증 기반' },
-            { icon: '📋', label: '실시간 보안 로그 및 감사 추적' },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center gap-3">
-              <span className="text-sm">{item.icon}</span>
-              <span className="text-[13px] font-medium" style={{ color: '#94A3B8' }}>{item.label}</span>
-            </div>
-          ))}
-          <div className="pt-6 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-            <span className="text-[12px] font-semibold tracking-wider uppercase" style={{ color: '#475569' }}>All Systems Operational</span>
-          </div>
+      {/* ── 상단 네비 (배경 위 오버레이) ── */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-end gap-8 px-12 py-7" style={{ zIndex: 10 }}>
+        {['ABOUT','DOWNLOAD','PRICING','CONTACT'].map(item => (
+          <span key={item} className="text-[13px] font-semibold tracking-wider cursor-pointer hover:opacity-100 transition-opacity" style={{ color: 'rgba(255,255,255,0.75)' }}>{item}</span>
+        ))}
+        <button className="px-6 py-2 rounded-full text-[13px] font-bold tracking-wider" style={{ color: 'white', border: '2px solid rgba(255,255,255,0.85)' }}>
+          SIGN IN
+        </button>
+        <div className="flex flex-col gap-[5px] cursor-pointer ml-1">
+          {[0,1,2].map(i => <div key={i} style={{ width: 22, height: 2, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 2 }} />)}
         </div>
       </div>
 
-      {/* 오른쪽 폼 패널 */}
-      <div className="flex-1 flex items-center justify-center p-8" style={{ backgroundColor: '#F8FAFC' }}>
-        <div className="w-full max-w-[400px]">
+      {/* ── 로그인 카드 (좌측 floating) ── */}
+      <div className="ml-14 my-10 flex flex-col" style={{
+        backgroundColor: '#ffffff',
+        width: '400px',
+        minWidth: '380px',
+        borderRadius: '28px',
+        padding: '44px 44px 36px',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
+        zIndex: 10,
+        flexShrink: 0,
+      }}>
+        {/* 로고 */}
+        <div className="flex items-center gap-2.5 mb-8">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#1B3A6B' }}>
+            <Shield size={18} className="text-white" />
+          </div>
+          <div>
+            <div className="font-black text-[15px] leading-tight" style={{ color: '#1B3A6B' }}>
+              AX<span style={{ color: '#f97316' }}>GATE</span>
+            </div>
+            <div className="text-[9px] font-bold tracking-widest uppercase" style={{ color: '#94A3B8' }}>SaferHome</div>
+          </div>
+        </div>
 
-          {/* 헤더 */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-1" style={{ color: '#0F172A' }}>로그인</h2>
-            <p className="text-[14px]" style={{ color: '#64748B' }}>AXGATE SaferHome 관리 시스템</p>
+        {/* 아바타 */}
+        <div className="flex justify-center mb-8">
+          <div className="w-[100px] h-[100px] rounded-full flex items-center justify-center" style={{ backgroundColor: '#1B3A6B' }}>
+            <User size={44} className="text-white" />
+          </div>
+        </div>
+
+        {/* 폼 */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* 아이디 */}
+          <div className="flex items-center gap-3 px-4 py-3 rounded-full transition-all" style={{ border: '1.5px solid #CBD5E1' }}>
+            <User size={15} style={{ color: '#94A3B8', flexShrink: 0 }} />
+            <input
+              type="text" required value={userId} onChange={e => setUserId(e.target.value)}
+              className="flex-1 outline-none text-[13px] bg-transparent font-semibold tracking-widest uppercase"
+              style={{ color: '#1B3A6B' }}
+              onFocus={e => { e.currentTarget.parentElement.style.borderColor = '#1B3A6B'; }}
+              onBlur={e => { e.currentTarget.parentElement.style.borderColor = '#CBD5E1'; }}
+              placeholder="USERNAME"
+            />
+          </div>
+
+          {/* 비밀번호 */}
+          <div className="flex items-center gap-3 px-4 py-3 rounded-full transition-all" style={{ border: '1.5px solid #CBD5E1' }}>
+            <Lock size={15} style={{ color: '#94A3B8', flexShrink: 0 }} />
+            <input
+              type="password" required value={password} onChange={e => setPassword(e.target.value)}
+              className="flex-1 outline-none text-[14px] bg-transparent"
+              style={{ color: '#1B3A6B', letterSpacing: '0.18em' }}
+              onFocus={e => { e.currentTarget.parentElement.style.borderColor = '#1B3A6B'; }}
+              onBlur={e => { e.currentTarget.parentElement.style.borderColor = '#CBD5E1'; }}
+              placeholder="••••••••••••"
+            />
           </div>
 
           {/* 역할 탭 */}
-          <div className="flex gap-0 mb-7 border border-slate-200 rounded-lg overflow-hidden bg-white">
-            <button
-              type="button"
-              onClick={() => setLoginRole('user')}
-              className="flex-1 py-3 text-[13px] font-semibold transition-all border-r border-slate-200"
-              style={{
-                backgroundColor: loginRole === 'user' ? '#0F172A' : 'white',
-                color: loginRole === 'user' ? '#F1F5F9' : '#64748B',
-              }}
-            >
-              사용자
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginRole('admin')}
-              className="flex-1 py-3 text-[13px] font-semibold transition-all"
-              style={{
-                backgroundColor: loginRole === 'admin' ? '#0F172A' : 'white',
-                color: loginRole === 'admin' ? '#F1F5F9' : '#64748B',
-              }}
-            >
-              관리자
-            </button>
+          <div className="flex gap-2">
+            {['user','admin'].map(role => (
+              <button key={role} type="button" onClick={() => setLoginRole(role)}
+                className="flex-1 py-2 rounded-full text-[11px] font-bold tracking-wide uppercase transition-all"
+                style={{
+                  backgroundColor: loginRole === role ? '#1B3A6B' : 'transparent',
+                  color: loginRole === role ? '#ffffff' : '#94A3B8',
+                  border: `1.5px solid ${loginRole === role ? '#1B3A6B' : '#CBD5E1'}`,
+                }}>
+                {role === 'user' ? '사용자' : '관리자'}
+              </button>
+            ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-              <label className="block text-[12px] font-semibold mb-1.5 uppercase tracking-wide" style={{ color: '#64748B' }}>이메일</label>
-              <input
-                type="text"
-                required
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                className="w-full bg-white rounded-lg px-4 py-3 text-[14px] outline-none transition-all"
-                style={{
-                  border: '1px solid #CBD5E1',
-                  color: '#0F172A',
-                  fontFamily: "'Inter', sans-serif",
-                }}
-                onFocus={e => e.target.style.borderColor = '#3B82F6'}
-                onBlur={e => e.target.style.borderColor = '#CBD5E1'}
-                placeholder="admin@axgate.com"
-              />
-            </div>
+          {/* 로그인 버튼 */}
+          <button
+            type="submit" disabled={isLoading}
+            className="w-full text-white text-[13px] font-black rounded-full py-3.5 tracking-[0.18em] uppercase transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            style={{ backgroundColor: '#1B3A6B' }}
+            onMouseEnter={e => !isLoading && (e.currentTarget.style.backgroundColor = '#142d54')}
+            onMouseLeave={e => !isLoading && (e.currentTarget.style.backgroundColor = '#1B3A6B')}
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'LOGIN'}
+          </button>
+        </form>
 
-            <div>
-              <label className="block text-[12px] font-semibold mb-1.5 uppercase tracking-wide" style={{ color: '#64748B' }}>비밀번호</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white rounded-lg px-4 py-3 text-[14px] outline-none transition-all"
-                style={{
-                  border: '1px solid #CBD5E1',
-                  color: '#0F172A',
-                  fontFamily: "'Inter', sans-serif",
-                }}
-                onFocus={e => e.target.style.borderColor = '#3B82F6'}
-                onBlur={e => e.target.style.borderColor = '#CBD5E1'}
-                placeholder="••••••••"
-              />
-            </div>
+        {/* Remember / Forgot */}
+        <div className="flex justify-between items-center mt-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={saveId} onChange={e => setSaveId(e.target.checked)} className="w-3.5 h-3.5 rounded" style={{ accentColor: '#1B3A6B' }} />
+            <span className="text-[11px]" style={{ color: '#94A3B8' }}>Remember me</span>
+          </label>
+          <a href="#" className="text-[11px] hover:opacity-70 transition-opacity" style={{ color: '#94A3B8' }}>Forget your password?</a>
+        </div>
 
-            <div className="flex justify-between items-center py-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={saveId}
-                  onChange={(e) => setSaveId(e.target.checked)}
-                  className="w-4 h-4 rounded cursor-pointer"
-                  style={{ accentColor: '#3B82F6' }}
-                />
-                <span className="text-[13px]" style={{ color: '#64748B' }}>아이디 저장</span>
-              </label>
-              <div className="flex items-center gap-3 text-[12px]" style={{ color: '#94A3B8' }}>
-                <a href="#" className="hover:text-slate-600 transition-colors">아이디 찾기</a>
-                <span>|</span>
-                <a href="#" className="hover:text-slate-600 transition-colors">비밀번호 찾기</a>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full text-white text-[14px] font-semibold rounded-lg py-3.5 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-              style={{
-                backgroundColor: '#1D4ED8',
-                boxShadow: '0 1px 3px rgba(29,78,216,0.3)',
-              }}
-              onMouseEnter={e => !isLoading && (e.target.style.backgroundColor = '#1E40AF')}
-              onMouseLeave={e => !isLoading && (e.target.style.backgroundColor = '#1D4ED8')}
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : '로그인'}
-            </button>
-
-            <p className="text-center text-[11px] pt-2 flex items-center justify-center gap-1.5" style={{ color: '#94A3B8' }}>
-              <Lock size={11} /> 256-bit SSL 암호화 적용
-            </p>
-          </form>
+        {/* 하단 점 3개 */}
+        <div className="flex justify-center gap-2 mt-8">
+          {[0,1,2].map(i => (
+            <div key={i} className="rounded-full" style={{ width: 9, height: 9, backgroundColor: '#CBD5E1' }} />
+          ))}
         </div>
       </div>
+
+      {/* ── 우측 Welcome 텍스트 ── */}
+      <div className="flex-1 flex flex-col justify-end pb-14 px-14" style={{ zIndex: 5 }}>
+        <h1 className="font-black leading-none mb-4" style={{ color: '#ffffff', fontSize: '88px', letterSpacing: '-4px', textShadow: '0 2px 24px rgba(0,0,0,0.1)' }}>
+          Welcome.
+        </h1>
+        <p className="text-[13px] leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.7)', maxWidth: '300px' }}>
+          홈네트워크 안전점검부터 취약점 분석까지<br />신뢰할 수 있는 통합 보안 관제 플랫폼입니다.
+        </p>
+        <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.65)' }}>
+          계정이 없으신가요?{' '}
+          <a href="#" style={{ color: '#ffffff', fontWeight: 700 }}>지금 가입하기</a>
+        </p>
+      </div>
+
+      {/* ── 우하단 별 아이콘 ── */}
+      <div className="absolute bottom-8 right-10" style={{ zIndex: 5, color: 'rgba(255,255,255,0.5)', fontSize: '28px', lineHeight: 1 }}>✦</div>
     </div>
   );
 };
@@ -4841,7 +4811,7 @@ export default function App() {
             </div>
             <div>
               <div className="text-white font-black text-[15px] tracking-tight leading-none">AX<span style={{ color: '#f97316' }}>GATE</span></div>
-              <div className="text-[9px] font-semibold tracking-widest uppercase leading-none mt-0.5" style={{ color: '#334155' }}>SaferHome</div>
+              <div className="text-[9px] font-semibold tracking-widest uppercase leading-none mt-0.5" style={{ color: '#64748B' }}>SaferHome</div>
             </div>
           </div>
         </div>
@@ -4854,7 +4824,7 @@ export default function App() {
             { label: 'SETTINGS', items: settingsItems },
           ].map(({ label, items }) => (
             <div key={label} className="mb-6">
-              <p className="text-[10px] font-bold px-3 mb-2 tracking-widest uppercase" style={{ color: '#334155' }}>{label}</p>
+              <p className="text-[10px] font-bold px-3 mb-2 tracking-widest uppercase" style={{ color: '#64748B' }}>{label}</p>
               <nav className="space-y-0.5">
                 {items.map(renderMenuItem)}
               </nav>
@@ -4871,7 +4841,7 @@ export default function App() {
               </div>
               <div>
                 <div className="text-[13px] font-semibold leading-none mb-0.5" style={{ color: '#E2E8F0' }}>최고관리자</div>
-                <div className="text-[10px] leading-none" style={{ color: '#475569' }}>admin@axgate.com</div>
+                <div className="text-[10px] leading-none" style={{ color: '#64748B' }}>admin@axgate.com</div>
               </div>
             </div>
             <button
