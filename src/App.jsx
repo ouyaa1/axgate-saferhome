@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { 
   LayoutDashboard, Server, Shield, Network, Activity, 
   AlertTriangle, FileText, Bell, Search, User, 
@@ -14,7 +14,7 @@ import {
   ArrowLeft, ListFilter, History as HistoryIcon, Download,
   Settings, RefreshCw, Grid3X3, Home, Navigation, Trees, ChevronRight as ChevronRightIcon,
   ClipboardCheck, PenTool, Stamp, CheckSquare, Eye, MapPin, Calendar, Info,
-  Trash2, Edit, Play, Plus, ScrollText, Archive, Key, Users, UserPlus, ShieldHalf, UserCheck
+  Trash2, Edit, Edit3, Play, Plus, ScrollText, Archive, Key, Users, UserPlus, ShieldHalf, UserCheck
 } from 'lucide-react';
 
 // --- [데이터] 메인 앱 데이터 ---
@@ -30,14 +30,14 @@ const INITIAL_LOGS = [
 ];
 
 const INITIAL_COMPLEX_LIST = [
-  { id: 'AX-PRM-01', name: '디에이치 아너힐즈', region: '서울 강남구', builder: '현대건설', homenet: '현대HT', status: '정상', address: '서울특별시 강남구 개포로 310', manager: '박신일 소장', contact: '010-1234-5678', report: '발급', regDate: '2024-01-15', registrant: '시스템', builderManager: '김현대 과장', builderContact: '010-1111-2222', homenetManager: '이현대 대리', homenetContact: '010-3333-4444' },
-  { id: 'AX-PRM-02', name: '래미안 원베일리', region: '서울 서초구', builder: '삼성물산', homenet: '삼성SDS', status: '정상', address: '서울특별시 서초구 반포대로 300', manager: '김철수 소장', contact: '010-2345-6789', report: '발급', regDate: '2024-01-18', registrant: '박신일', builderManager: '박삼성 책임', builderContact: '010-2222-3333', homenetManager: '최에스 프로', homenetContact: '010-4444-5555' },
-  { id: 'AX-PRM-03', name: '반포 자이', region: '서울 서초구', builder: 'GS건설', homenet: '이지스', status: '정상', address: '서울특별시 서초구 신반포로 270', manager: '이영희 소장', contact: '010-3456-7890', report: '발급', regDate: '2024-03-12', registrant: '장정구', builderManager: '정지에스 차장', builderContact: '010-3333-4444', homenetManager: '강이지 주임', homenetContact: '010-5555-6666' },
-  { id: 'AX-PRM-04', name: '올림픽파크 포레온', region: '서울 강동구', builder: '현대건설', homenet: '현대HT', status: '정상', address: '서울특별시 강동구 양재대로 1218', manager: '정민수 소장', contact: '010-4567-8901', report: '발급', regDate: '2024-05-15', registrant: '박신일', builderManager: '김현대 과장', builderContact: '010-1111-2222', homenetManager: '이현대 대리', homenetContact: '010-3333-4444' },
-  { id: 'AX-PRM-05', name: '마포 래미안 푸르지오', region: '서울 마포구', builder: '대우건설', homenet: '코콤', status: '오프라인', address: '서울특별시 마포구 마포대로 195', manager: '최은지 소장', contact: '010-5678-9012', report: '미발급', regDate: '2024-06-05', registrant: '장정구', builderManager: '윤대우 대리', builderContact: '010-4444-5555', homenetManager: '임코콤 과장', homenetContact: '010-6666-7777' },
-  { id: 'AX-PRM-06', name: '송파 헬리오시티', region: '서울 송파구', builder: 'DL이앤씨', homenet: '코맥스', status: '정상', address: '서울특별시 송파구 송파대로 345', manager: '강동훈 소장', contact: '010-6789-0123', report: '발급', regDate: '2024-07-12', registrant: '시스템', builderManager: '조디엘 차장', builderContact: '010-5555-6666', homenetManager: '송코맥 대리', homenetContact: '010-7777-8888' },
-  { id: 'AX-PRM-07', name: '해운대 엘시티 더샵', region: '부산 해운대구', builder: '포스코이앤씨', homenet: '포스코DX', status: '정상', address: '부산광역시 해운대구 달맞이길 30', manager: '윤서연 소장', contact: '010-7890-1234', report: '발급', regDate: '2024-08-20', registrant: '박신일', builderManager: '한포스 과장', builderContact: '010-6666-7777', homenetManager: '백디엑 사원', homenetContact: '010-8888-9999' },
-  { id: 'AX-PRM-08', name: '힐스테이트 송도 더스카이', region: '인천 연수구', builder: '현대건설', homenet: '현대HT', status: '점검중', address: '인천광역시 연수구 인천타워대로 396', manager: '임도현 소장', contact: '010-8901-2345', report: '미발급', regDate: '2024-09-01', registrant: '장정구', builderManager: '김현대 과장', builderContact: '010-1111-2222', homenetManager: '이현대 대리', homenetContact: '010-3333-4444' },
+  { id: 'AX-PRM-01', name: '디에이치 아너힐즈', region: '서울 강남구', builder: '현대건설', homenet: '현대HT', status: '정상', address: '서울특별시 강남구 개포로 310', manager: '박신일 소장', contact: '010-1234-5678', report: '발급', regDate: '2024-01-15', registrant: '시스템', builderManager: '김현대 과장', builderContact: '010-1111-2222', homenetManager: '이현대 대리', homenetContact: '010-3333-4444', dongCount: 10, dongStartNum: 101, floorCount: 20, unitsPerFloor: 2, deviceRegistered: true },
+  { id: 'AX-PRM-02', name: '래미안 원베일리', region: '서울 서초구', builder: '삼성물산', homenet: '삼성SDS', status: '정상', address: '서울특별시 서초구 반포대로 300', manager: '김철수 소장', contact: '010-2345-6789', report: '발급', regDate: '2024-01-18', registrant: '박신일', builderManager: '박삼성 책임', builderContact: '010-2222-3333', homenetManager: '최에스 프로', homenetContact: '010-4444-5555', dongCount: 8, dongStartNum: 101, floorCount: 25, unitsPerFloor: 4, deviceRegistered: true },
+  { id: 'AX-PRM-03', name: '반포 자이', region: '서울 서초구', builder: 'GS건설', homenet: '이지스', status: '정상', address: '서울특별시 서초구 신반포로 270', manager: '이영희 소장', contact: '010-3456-7890', report: '발급', regDate: '2024-03-12', registrant: '장정구', builderManager: '정지에스 차장', builderContact: '010-3333-4444', homenetManager: '강이지 주임', homenetContact: '010-5555-6666', dongCount: 12, dongStartNum: 101, floorCount: 15, unitsPerFloor: 3, deviceRegistered: true },
+  { id: 'AX-PRM-04', name: '올림픽파크 포레온', region: '서울 강동구', builder: '현대건설', homenet: '현대HT', status: '정상', address: '서울특별시 강동구 양재대로 1218', manager: '정민수 소장', contact: '010-4567-8901', report: '발급', regDate: '2024-05-15', registrant: '박신일', builderManager: '김현대 과장', builderContact: '010-1111-2222', homenetManager: '이현대 대리', homenetContact: '010-3333-4444', dongCount: 15, dongStartNum: 101, floorCount: 30, unitsPerFloor: 4, deviceRegistered: true },
+  { id: 'AX-PRM-05', name: '마포 래미안 푸르지오', region: '서울 마포구', builder: '대우건설', homenet: '코콤', status: '오프라인', address: '서울특별시 마포구 마포대로 195', manager: '최은지 소장', contact: '010-5678-9012', report: '미발급', regDate: '2024-06-05', registrant: '장정구', builderManager: '윤대우 대리', builderContact: '010-4444-5555', homenetManager: '임코콤 과장', homenetContact: '010-6666-7777', dongCount: 6, dongStartNum: 101, floorCount: 18, unitsPerFloor: 2, deviceRegistered: true },
+  { id: 'AX-PRM-06', name: '송파 헬리오시티', region: '서울 송파구', builder: 'DL이앤씨', homenet: '코맥스', status: '정상', address: '서울특별시 송파구 송파대로 345', manager: '강동훈 소장', contact: '010-6789-0123', report: '발급', regDate: '2024-07-12', registrant: '시스템', builderManager: '조디엘 차장', builderContact: '010-5555-6666', homenetManager: '송코맥 대리', homenetContact: '010-7777-8888', dongCount: 20, dongStartNum: 101, floorCount: 25, unitsPerFloor: 4, deviceRegistered: true },
+  { id: 'AX-PRM-07', name: '해운대 엘시티 더샵', region: '부산 해운대구', builder: '포스코이앤씨', homenet: '포스코DX', status: '정상', address: '부산광역시 해운대구 달맞이길 30', manager: '윤서연 소장', contact: '010-7890-1234', report: '발급', regDate: '2024-08-20', registrant: '박신일', builderManager: '한포스 과장', builderContact: '010-6666-7777', homenetManager: '백디엑 사원', homenetContact: '010-8888-9999', dongCount: 5, dongStartNum: 101, floorCount: 45, unitsPerFloor: 6, deviceRegistered: true },
+  { id: 'AX-PRM-08', name: '힐스테이트 송도 더스카이', region: '인천 연수구', builder: '현대건설', homenet: '현대HT', status: '점검중', address: '인천광역시 연수구 인천타워대로 396', manager: '임도현 소장', contact: '010-8901-2345', report: '미발급', regDate: '2024-09-01', registrant: '장정구', builderManager: '김현대 과장', builderContact: '010-1111-2222', homenetManager: '이현대 대리', homenetContact: '010-3333-4444', dongCount: 7, dongStartNum: 101, floorCount: 35, unitsPerFloor: 3, deviceRegistered: true },
 ];
 
 const VULNERABILITY_CHECKLIST = [
@@ -94,6 +94,121 @@ const SAFETY_INSPECTION_CHECKLIST = [
   { category: '기타', item: '유지관리 매뉴얼, 설계도서 비치 점검', cycleRec: '월간', cycleMan: '월간' },
   { category: '기타', item: '홈네트워크 공사 및 용역대장 작성 점검', cycleRec: '월간', cycleMan: '월간' },
 ];
+
+// --- [단지별 데모 데이터 생성 함수] ---
+const generateVulnerabilityDataForComplex = (complexId) => {
+  let seed = 0;
+  for (let i = 0; i < complexId.length; i++) seed += complexId.charCodeAt(i);
+  return VULNERABILITY_CHECKLIST.map((item, idx) => {
+    const v = (seed * (idx + 1) * 7 + idx * 13) % 100;
+    let result;
+    if (v < 60) result = '양호';
+    else if (v < 80) result = '취약';
+    else result = '수동점검';
+    const note = result === '양호' ? '-' : result === '취약' ? '조치 필요' : '확인 필요';
+    return { ...item, result, note };
+  });
+};
+
+const generateSafetyDataForComplex = (complexId) => {
+  let seed = 0;
+  for (let i = 0; i < complexId.length; i++) seed += complexId.charCodeAt(i);
+  return SAFETY_INSPECTION_CHECKLIST.map((item, idx) => {
+    const v = (seed * (idx + 1) * 11 + idx * 17) % 100;
+    let result;
+    if (v < 75) result = '양호';
+    else if (v < 90) result = '불량';
+    else result = '해당없음';
+    return { ...item, id: `SI-${idx}`, result };
+  });
+};
+
+const generateAllVulnerabilityData = (complexList) => {
+  const data = {};
+  complexList.forEach(c => { data[c.id] = generateVulnerabilityDataForComplex(c.id); });
+  return data;
+};
+
+const generateAllSafetyInspectionData = (complexList) => {
+  const data = {};
+  complexList.forEach(c => { data[c.id] = generateSafetyDataForComplex(c.id); });
+  return data;
+};
+
+const COMPLEX_MANAGEMENT_CHECKLIST = [
+  { id: 'CM-01', category: '장비 현황', item: '세대 단말기(월패드) 설치 현황 확인', result: '양호', note: '-' },
+  { id: 'CM-02', category: '장비 현황', item: '단지서버 가동 상태 점검', result: '양호', note: '-' },
+  { id: 'CM-03', category: '장비 현황', item: '네트워크 장비(스위치/라우터) 상태 확인', result: '양호', note: '-' },
+  { id: 'CM-04', category: '장비 현황', item: '방화벽 장비 운영 상태 점검', result: '양호', note: '-' },
+  { id: 'CM-05', category: '네트워크', item: '단지 내부망 통신 상태 점검', result: '양호', note: '-' },
+  { id: 'CM-06', category: '네트워크', item: 'VPN 터널링 연결 상태 확인', result: '양호', note: '-' },
+  { id: 'CM-07', category: '네트워크', item: '백본 네트워크 대역폭 점검', result: '양호', note: '-' },
+  { id: 'CM-08', category: '보안 관리', item: '보안 정책(룰셋) 최신 적용 여부', result: '양호', note: '-' },
+  { id: 'CM-09', category: '보안 관리', item: '비인가 접근 시도 모니터링', result: '양호', note: '-' },
+  { id: 'CM-10', category: '보안 관리', item: '관리자 계정 접근 권한 검토', result: '양호', note: '-' },
+  { id: 'CM-11', category: '운영 관리', item: '장애 세대 현황 파악 및 조치', result: '양호', note: '-' },
+  { id: 'CM-12', category: '운영 관리', item: '정기 점검 스케줄 이행 여부', result: '양호', note: '-' },
+  { id: 'CM-13', category: '운영 관리', item: '유지보수 이력 관리', result: '양호', note: '-' },
+  { id: 'CM-14', category: '운영 관리', item: '비상 연락망 및 대응 체계 확인', result: '양호', note: '-' },
+  { id: 'CM-15', category: '시스템', item: 'CPU/메모리 사용률 안정성 확인', result: '양호', note: '-' },
+  { id: 'CM-16', category: '시스템', item: '디스크 용량 및 로그 관리 상태', result: '양호', note: '-' },
+  { id: 'CM-17', category: '시스템', item: '시스템 백업 정책 이행 확인', result: '양호', note: '-' },
+  { id: 'CM-18', category: '시스템', item: '소프트웨어 버전 및 패치 현황', result: '양호', note: '-' },
+];
+
+const generateComplexMgmtDataForComplex = (complexId) => {
+  let seed = 0;
+  for (let i = 0; i < complexId.length; i++) seed += complexId.charCodeAt(i);
+  return COMPLEX_MANAGEMENT_CHECKLIST.map((item, idx) => {
+    const v = (seed * (idx + 1) * 9 + idx * 19) % 100;
+    let result;
+    if (v < 65) result = '양호';
+    else if (v < 85) result = '미흡';
+    else result = '보완필요';
+    const note = result === '양호' ? '-' : result === '미흡' ? '조치 필요' : '보완 조치 필요';
+    return { ...item, result, note };
+  });
+};
+
+const generateAllComplexMgmtData = (complexList) => {
+  const data = {};
+  complexList.forEach(c => { data[c.id] = generateComplexMgmtDataForComplex(c.id); });
+  return data;
+};
+
+const REPORT_TYPES = ['취약점 점검', '안전 점검', '단지 보고서', '종합 보고서'];
+const REPORT_AUTHORS = ['박신일', '장정구', '시스템', '김철수'];
+
+const generateReportsForComplex = (complexId, complexName) => {
+  let seed = 0;
+  for (let i = 0; i < complexId.length; i++) seed += complexId.charCodeAt(i);
+  const count = 5 + (seed % 6);
+  const reports = [];
+  for (let i = 0; i < count; i++) {
+    const v = (seed * (i + 1) * 7 + i * 13) % 100;
+    const typeIdx = (seed + i * 3) % REPORT_TYPES.length;
+    const authorIdx = (seed + i * 5) % REPORT_AUTHORS.length;
+    const day = String(28 - ((seed + i * 2) % 28)).padStart(2, '0');
+    const month = v < 50 ? '02' : '01';
+    const statusVal = v < 70 ? '완료' : v < 85 ? '점검중' : '대기';
+    reports.push({
+      id: `REP-${complexId}-${String(i + 1).padStart(2, '0')}`,
+      date: `2026-${month}-${day}`,
+      title: `${complexName} ${REPORT_TYPES[typeIdx]} 보고서 (${i + 1}차)`,
+      type: REPORT_TYPES[typeIdx],
+      author: REPORT_AUTHORS[authorIdx],
+      size: `${(1.0 + (v % 40) / 10).toFixed(1)} MB`,
+      status: statusVal,
+    });
+  }
+  return reports.sort((a, b) => b.date.localeCompare(a.date));
+};
+
+const generateAllReportData = (complexList) => {
+  const data = {};
+  complexList.forEach(c => { data[c.id] = generateReportsForComplex(c.id, c.name); });
+  return data;
+};
 
 // --- [공통 컴포넌트] ---
 const AxgateLogo = ({ onClick }) => (
@@ -333,7 +448,7 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
   const downloadPdf = () => {
     setIsPdfLoading(true);
     const element = document.getElementById('pdf-report-content');
-    
+
     // PDF 변환 옵션 설정 (A4 기준 고품질 변환)
     const opt = {
       margin:       0,
@@ -391,10 +506,10 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
              </button>
            </div>
         </div>
-        
+
         {/* A4 용지 영역 (세련된 스타일 적용) */}
         <div id="pdf-report-content" className="w-full min-h-[1123px] bg-white shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] flex flex-col mx-auto mb-20 relative overflow-hidden font-sans">
-           
+
            {/* 배경 워터마크 효과 */}
            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none rotate-[15deg]">
               <div className="text-[150px] font-black text-slate-900 select-none">AXGATE</div>
@@ -407,7 +522,7 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
            <div className="p-16 pb-10">
               <div className="flex justify-between items-start mb-12">
                 <AxgateLogo />
-                
+
                 {/* 결재 영역 */}
                 <table className="border-collapse border border-slate-300 text-[10px] w-56 table-fixed">
                   <tbody>
@@ -514,6 +629,14 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
                        <th className="p-3 w-20 text-center font-bold border-r border-slate-700">결과</th>
                        <th className="p-3 w-32 text-center rounded-tr-lg font-bold">비고</th>
                      </>
+                   ) : type === 'complex_mgmt' ? (
+                     <>
+                       <th className="p-3 w-16 text-center rounded-tl-lg font-bold border-r border-slate-700">ID</th>
+                       <th className="p-3 w-28 text-center font-bold border-r border-slate-700">분류</th>
+                       <th className="p-3 text-left font-bold border-r border-slate-700">점검 항목</th>
+                       <th className="p-3 w-20 text-center font-bold border-r border-slate-700">결과</th>
+                       <th className="p-3 w-32 text-center rounded-tr-lg font-bold">비고</th>
+                     </>
                    ) : (
                      <>
                        <th className="p-3 w-32 text-center rounded-tl-lg font-bold border-r border-slate-700">분류</th>
@@ -546,6 +669,18 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
                          <td className="p-3 text-center border-r border-slate-100">
                            <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
                              item.result === '취약' ? 'bg-rose-100 text-rose-600' : item.result === '양호' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'
+                           }`}>{item.result}</span>
+                         </td>
+                         <td className="p-3 text-center text-slate-500 text-[10px] italic">{item.note}</td>
+                       </>
+                     ) : type === 'complex_mgmt' ? (
+                       <>
+                         <td className="p-3 text-center text-slate-500 font-mono border-r border-slate-100">{item.id}</td>
+                         <td className="p-3 text-center font-bold text-slate-600 border-r border-slate-100">{item.category}</td>
+                         <td className="p-3 font-medium text-slate-700 border-r border-slate-100 leading-snug">{item.item}</td>
+                         <td className="p-3 text-center border-r border-slate-100">
+                           <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
+                             item.result === '양호' ? 'bg-emerald-100 text-emerald-600' : item.result === '미흡' ? 'bg-rose-100 text-rose-600' : 'bg-slate-200 text-slate-500'
                            }`}>{item.result}</span>
                          </td>
                          <td className="p-3 text-center text-slate-500 text-[10px] italic">{item.note}</td>
@@ -594,12 +729,13 @@ const AddComplexModal = ({ onClose, onSave, initialData }) => {
     builder: '현대건설', homenet: '현대HT',
     manager: '', contact: '',
     builderManager: '', builderContact: '',
-    homenetManager: '', homenetContact: ''
+    homenetManager: '', homenetContact: '',
+    dongCount: 10, dongStartNum: 101, floorCount: 20, unitsPerFloor: 2,
   });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(p => ({ ...p, [name]: value }));
+    const { name, value, type } = e.target;
+    setFormData(p => ({ ...p, [name]: type === 'number' ? Number(value) : value }));
   };
 
   const handleSubmit = (e) => {
@@ -673,6 +809,40 @@ const AddComplexModal = ({ onClose, onSave, initialData }) => {
                     <option value="기타">기타</option>
                   </select>
                 </div>
+              </div>
+            </div>
+
+            {/* 단지 구성 정보 */}
+            <div>
+              <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <div className="w-1.5 h-4 bg-teal-500 rounded-full"></div> 단지 구성 정보 (동호수)
+              </h4>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">동 수</label>
+                  <input type="number" name="dongCount" min={1} max={99} value={formData.dongCount} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all" placeholder="10" />
+                  <p className="text-[11px] text-slate-400 mt-1">단지 내 전체 동 수</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">시작 동번호</label>
+                  <input type="number" name="dongStartNum" min={1} max={999} value={formData.dongStartNum} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all" placeholder="101" />
+                  <p className="text-[11px] text-slate-400 mt-1">첫 번째 동 번호 (예: 101동)</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">층 수</label>
+                  <input type="number" name="floorCount" min={1} max={99} value={formData.floorCount} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all" placeholder="20" />
+                  <p className="text-[11px] text-slate-400 mt-1">각 동의 최고 층수</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">층당 호수</label>
+                  <input type="number" name="unitsPerFloor" min={1} max={20} value={formData.unitsPerFloor} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all" placeholder="2" />
+                  <p className="text-[11px] text-slate-400 mt-1">각 층의 세대 수</p>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-teal-50 border border-teal-100 rounded-xl">
+                <p className="text-xs text-teal-700 font-medium">
+                  <span className="font-bold">미리보기:</span> {formData.dongStartNum}동 ~ {formData.dongStartNum + formData.dongCount - 1}동 / 각 {formData.floorCount}층 / 층당 {formData.unitsPerFloor}세대 → 총 <span className="font-black">{formData.dongCount * formData.floorCount * formData.unitsPerFloor}</span>세대
+                </p>
               </div>
             </div>
 
@@ -1001,7 +1171,7 @@ const ComplexListDashboard = ({ onNavigate, onSelectComplex, complexList, setCom
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowAddModal(true)} className="px-3 py-1.5 bg-white hover:bg-slate-100 text-[#3b82f6] rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-              <Plus className="w-3.5 h-3.5" /> 단지 추가
+              <Plus className="w-3.5 h-3.5" /> 단지 등록
             </button>
             <div className="w-px h-6 bg-white/20 mx-1"></div>
             
@@ -1049,17 +1219,17 @@ const ComplexListDashboard = ({ onNavigate, onSelectComplex, complexList, setCom
             </thead>
             <tbody className="divide-y divide-slate-100">
               {displayedList.length > 0 ? displayedList.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/70 transition-colors group">
+                <tr key={item.id} className="hover:bg-slate-50/70 transition-colors group cursor-pointer" onClick={(e) => { if (!e.target.closest('button') && !e.target.closest('input[type="checkbox"]')) handleSelect(item.id); }}>
                   <td className="px-4 py-4 text-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={selectedIds.includes(item.id)}
                       onChange={() => handleSelect(item.id)}
                       className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                     />
                   </td>
                   <td className="px-4 py-4">
-                    <button 
+                    <button
                       onClick={() => onSelectComplex ? onSelectComplex(item.id) : onNavigate('complex_detail')}
                       className="text-sm font-bold text-blue-600 hover:underline hover:text-blue-800 text-left transition-colors"
                     >
@@ -1238,44 +1408,44 @@ const LogDashboard = () => {
 const LogServerDashboard = ({ isMounted }) => (
   <div className="flex flex-col gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
     {/* 상단 장비 및 라이선스 정보 카드 */}
-    <div className="bg-slate-900 rounded-3xl p-8 flex flex-col lg:flex-row justify-between items-center shadow-xl border border-slate-800 gap-8 relative overflow-hidden group">
-      <div className="absolute right-0 top-0 opacity-5 pointer-events-none transform translate-x-10 -translate-y-10 group-hover:scale-110 transition-transform duration-700">
+    <div className="bg-white rounded-3xl p-8 flex flex-col lg:flex-row justify-between items-center shadow-sm border border-slate-200/60 gap-8 relative overflow-hidden group">
+      <div className="absolute right-0 top-0 opacity-[0.03] pointer-events-none transform translate-x-10 -translate-y-10 group-hover:scale-110 transition-transform duration-700 text-slate-400">
         <Archive size={300} />
       </div>
-      
+
       <div className="flex items-center gap-6 relative z-10">
-        <div className="w-20 h-20 bg-black rounded-2xl flex items-center justify-center shadow-lg border-b-4 border-slate-800">
+        <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg border-b-4 border-slate-700">
           <Archive className="w-10 h-10 text-[#f97316]" />
         </div>
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h3 className="text-3xl font-black text-white tracking-tight">AXGATE-TMS-8000</h3>
-            <span className="text-[10px] font-black text-[#f97316] bg-orange-500/10 px-2 py-1 rounded border border-orange-500/20 uppercase tracking-widest">Appliance</span>
+            <h3 className="text-3xl font-black text-slate-800 tracking-tight">AXGATE-TMS-8000</h3>
+            <span className="text-[10px] font-black text-[#f97316] bg-orange-50 px-2 py-1 rounded border border-orange-200 uppercase tracking-widest">Appliance</span>
           </div>
           <p className="text-sm text-slate-400 mt-1 flex items-center gap-3">
-            <span className="font-bold text-slate-300">Role:</span> 통합 보안 로그 서버 (Threat Management System)
-            <span className="text-slate-600">|</span> 
-            <span className="font-bold text-slate-300">IP:</span> 192.168.10.250
+            <span className="font-bold text-slate-600">Role:</span> 통합 보안 로그 서버 (Threat Management System)
+            <span className="text-slate-300">|</span>
+            <span className="font-bold text-slate-600">IP:</span> 192.168.10.250
           </p>
         </div>
       </div>
-      
+
       <div className="flex items-center gap-8 relative z-10">
-        <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl flex items-center gap-4">
-          <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-400">
+        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center gap-4">
+          <div className="p-2.5 bg-emerald-100 rounded-xl text-emerald-600">
             <Key size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest mb-0.5">Software License</p>
-            <p className="text-lg font-black text-emerald-400 leading-none">HW 인증 완료</p>
+            <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-0.5">Software License</p>
+            <p className="text-lg font-black text-emerald-600 leading-none">HW 인증 완료</p>
           </div>
         </div>
-        <div className="h-12 w-px bg-slate-800"></div>
+        <div className="h-12 w-px bg-slate-200"></div>
         <div className="text-right pr-4">
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">System Status</p>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">System Status</p>
           <div className="flex items-center gap-2 justify-end">
-            <div className="w-2.5 h-2.5 bg-[#10b981] rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-            <p className="text-2xl font-black text-white">Active</p>
+            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]"></div>
+            <p className="text-2xl font-black text-slate-800">Active</p>
           </div>
         </div>
       </div>
@@ -1295,7 +1465,7 @@ const LogServerDashboard = ({ isMounted }) => (
         <div className="bg-slate-50 border border-slate-100 p-6 rounded-2xl shadow-inner">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">Active Logs (/var/log)</p>
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">Active Logs</p>
               <h4 className="text-2xl font-black text-slate-800">8.4 <span className="text-sm text-slate-500">TB</span></h4>
             </div>
             <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><Activity size={20}/></div>
@@ -1316,7 +1486,7 @@ const LogServerDashboard = ({ isMounted }) => (
         <div className="bg-slate-50 border border-slate-100 p-6 rounded-2xl shadow-inner">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">Archive (/archive)</p>
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">Archive</p>
               <h4 className="text-2xl font-black text-slate-800">4.2 <span className="text-sm text-slate-500">TB</span></h4>
             </div>
             <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl"><Archive size={20}/></div>
@@ -1337,7 +1507,7 @@ const LogServerDashboard = ({ isMounted }) => (
         <div className="bg-slate-50 border border-slate-100 p-6 rounded-2xl shadow-inner">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">System OS (/root)</p>
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">System OS</p>
               <h4 className="text-2xl font-black text-slate-800">320 <span className="text-sm text-slate-500">GB</span></h4>
             </div>
             <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Server size={20}/></div>
@@ -1441,9 +1611,14 @@ const LogServerDashboard = ({ isMounted }) => (
   </div>
 );
 
-const ComplexDetailDashboard = ({ onNavigate, complexId, complexList, isMounted, onLog, terminalLogs }) => {
-  const [activeTab, setActiveTab] = useState('summary');
+const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId, complexList, setComplexList, isMounted, onLog, terminalLogs }) => {
   const selectedData = complexList.find(item => item.id === complexId) || complexList[0];
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const handleEditSave = (formData) => {
+    setComplexList(prev => prev.map(c => c.id === formData.id ? { ...c, ...formData } : c));
+    setShowEditModal(false);
+  };
 
   const complexInfo = {
     name: `${selectedData.name} (${selectedData.id})`,
@@ -1469,7 +1644,7 @@ const ComplexDetailDashboard = ({ onNavigate, complexId, complexList, isMounted,
   const tabs = [
     { id: 'summary', label: '단지 요약', icon: LayoutDashboard },
     { id: 'server', label: '단지서버', icon: Server },
-    { id: 'log_server', label: 'AXGATE Homes', icon: Archive },
+    { id: 'log_server', label: 'AXGATE SAFERHOME', icon: Archive },
     { id: 'firewall', label: '방화벽', icon: Shield },
     { id: 'network', label: '백본', icon: Network },
     { id: 'separation', label: '단지관리', icon: Activity },
@@ -1479,50 +1654,53 @@ const ComplexDetailDashboard = ({ onNavigate, complexId, complexList, isMounted,
 
   return (
     <div className="flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-      
-      {/* 단지 고정 네비게이션 헤더 */}
-      <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-4 shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-center gap-4 sticky top-0 z-[60]">
-        <div className="flex items-center gap-4 w-full xl:w-auto">
-          <button 
-            onClick={() => onNavigate('complex_list')} 
-            className="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors text-slate-500 hover:text-[#f97316] shadow-sm border border-slate-200"
-            title="목록으로 돌아가기"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg border-b-4 border-slate-700">
-              <Building2 className="w-6 h-6 text-[#f97316]" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-black text-slate-800 leading-tight flex items-center gap-3">
-                {selectedData.name}
-                <span className={`text-[10px] px-2 py-1 rounded-md text-white font-bold tracking-widest ${selectedData.status === '정상' ? 'bg-emerald-500' : selectedData.status === '오프라인' ? 'bg-slate-400' : 'bg-orange-500'}`}>
-                  {selectedData.status}
-                </span>
-              </h3>
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mt-1">
-                <MapPin size={12} className="text-slate-400" /> {complexInfo.address}
-              </div>
+
+      {/* 단지 정보 헤더 + 탭 바 */}
+      <div className="rounded-3xl p-8 shadow-sm sticky top-0 z-[60] border border-slate-300/60" style={{ backgroundColor: '#E2E8F0' }}>
+        <div className="flex items-center gap-6">
+          <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg border-b-4 border-slate-700">
+            <Building2 className="w-10 h-10 text-[#f97316]" />
+          </div>
+          <div>
+            <h3 className="text-3xl font-black text-slate-800 leading-tight flex items-center gap-3">
+              {selectedData.name}
+              <span className={`text-[10px] px-2 py-1 rounded-md text-white font-bold tracking-widest ${selectedData.status === '정상' ? 'bg-emerald-500' : selectedData.status === '오프라인' ? 'bg-slate-400' : 'bg-orange-500'}`}>
+                {selectedData.status}
+              </span>
+            </h3>
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mt-1">
+              <MapPin size={12} className="text-slate-400" /> {complexInfo.address}
             </div>
           </div>
-        </div>
-        
-        {/* 인프라 탭 메뉴 */}
-        <div className="flex gap-1.5 bg-slate-100/80 p-1.5 rounded-[1.5rem] w-full xl:w-auto overflow-x-auto custom-scrollbar shadow-inner">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-bold transition-all whitespace-nowrap ${
-                activeTab === tab.id 
-                  ? 'bg-white text-[#f97316] shadow-md border border-slate-100/50 transform scale-100' 
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
-              }`}
-            >
-              <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-[#f97316]' : 'text-slate-400'}`} /> {tab.label}
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <button onClick={() => setShowEditModal(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition-all cursor-pointer">
+              <Edit3 size={14} /> 단지 정보 수정
             </button>
-          ))}
+            <button onClick={() => onNavigate('complex_list')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-orange-600 hover:bg-orange-50 border border-slate-200 hover:border-orange-200 transition-all">
+              <ArrowLeft className="w-4 h-4" /> 단지 목록으로
+            </button>
+          </div>
+        </div>
+        {/* 콘텐츠 탭 바 */}
+        <div className="flex gap-1 bg-white/60 p-1.5 rounded-[1.5rem] mt-3 overflow-x-auto">
+          {tabs.map(tab => {
+            const TabIcon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange?.(tab.id)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[1.2rem] text-[12px] font-bold whitespace-nowrap transition-all duration-200 ${
+                  isActive
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+                }`}
+              >
+                <TabIcon size={14} strokeWidth={isActive ? 2 : 1.5} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1535,7 +1713,6 @@ const ComplexDetailDashboard = ({ onNavigate, complexId, complexList, isMounted,
               <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
                 <Building2 size={240} className="text-slate-900" />
               </div>
-              
               <div className="flex flex-col lg:flex-row justify-between gap-10 relative z-10">
                 <div className="flex-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -1677,12 +1854,20 @@ const ComplexDetailDashboard = ({ onNavigate, complexId, complexList, isMounted,
         {activeTab === 'firewall' && <div className="animate-in fade-in zoom-in-95 duration-300"><FirewallDashboard /></div>}
         {activeTab === 'network' && <div className="animate-in fade-in zoom-in-95 duration-300"><NetworkDashboard /></div>}
         {/* 일반 관리자 뷰: 제어 권한 없음 (isAdmin=false) */}
-        {activeTab === 'separation' && <div className="animate-in fade-in zoom-in-95 duration-300"><SeparationDashboard onLog={onLog} terminalLogs={terminalLogs} isAdmin={false} /></div>}
+        {activeTab === 'separation' && <div className="animate-in fade-in zoom-in-95 duration-300"><SeparationDashboard key={`sep-${selectedData.id}-${selectedData.dongCount}-${selectedData.dongStartNum}-${selectedData.floorCount}-${selectedData.unitsPerFloor}-${selectedData.deviceRegistered}`} onLog={onLog} terminalLogs={terminalLogs} isAdmin={false} complexConfig={selectedData} onRegisterDevice={() => setComplexList(prev => prev.map(c => c.id === selectedData.id ? { ...c, deviceRegistered: true } : c))} /></div>}
         {/* 시스템 엔지니어 뷰: 전체 제어 권한 부여 (isAdmin=true) */}
-        {activeTab === 'separation_2' && <div className="animate-in fade-in zoom-in-95 duration-300"><SeparationDashboard onLog={onLog} terminalLogs={terminalLogs} isAdmin={true} /></div>}
+        {activeTab === 'separation_2' && <div className="animate-in fade-in zoom-in-95 duration-300"><SeparationDashboard key={`sep2-${selectedData.id}-${selectedData.dongCount}-${selectedData.dongStartNum}-${selectedData.floorCount}-${selectedData.unitsPerFloor}-${selectedData.deviceRegistered}`} onLog={onLog} terminalLogs={terminalLogs} isAdmin={true} complexConfig={selectedData} onRegisterDevice={() => setComplexList(prev => prev.map(c => c.id === selectedData.id ? { ...c, deviceRegistered: true } : c))} /></div>}
         {/* 로그 뷰 추가 */}
         {activeTab === 'logs' && <div className="animate-in fade-in zoom-in-95 duration-300"><LogDashboard /></div>}
       </div>
+
+      {showEditModal && (
+        <AddComplexModal
+          onClose={() => setShowEditModal(false)}
+          onSave={handleEditSave}
+          initialData={selectedData}
+        />
+      )}
     </div>
   );
 };
@@ -2385,11 +2570,14 @@ const NetworkDashboard = () => (
   </div>
 );
 
-const VulnerabilityDashboard = ({ onLog }) => {
-  const [checklist, setChecklist] = useState(VULNERABILITY_CHECKLIST);
+const VulnerabilityDashboard = ({ onLog, complexId, complexList, vulnerabilityData, onDataChange, onSelectComplex }) => {
+  const [checklist, setChecklist] = useState(complexId ? (vulnerabilityData[complexId] || []) : []);
   const [showPreview, setShowPreview] = useState(false);
   const [inspectDate, setInspectDate] = useState("2026-02-20");
-  
+  const [landingSearch, setLandingSearch] = useState('');
+  const [landingView, setLandingView] = useState('grid');
+  const [checkedIds, setCheckedIds] = useState([]);
+
   // 결재 상태 관리
   const [approvals, setApprovals] = useState([
     { role: '담 당', name: '장정구', date: '02.20', status: 'approved' },
@@ -2397,6 +2585,12 @@ const VulnerabilityDashboard = ({ onLog }) => {
     { role: '과 장', name: '', date: '', status: 'pending' },
     { role: '소 장', name: '', date: '', status: 'pending' }
   ]);
+
+  useEffect(() => {
+    if (complexId && vulnerabilityData[complexId]) {
+      setChecklist(vulnerabilityData[complexId]);
+    }
+  }, [complexId]);
 
   const groupedList = useMemo(() => {
     return checklist.reduce((acc, curr) => {
@@ -2408,17 +2602,183 @@ const VulnerabilityDashboard = ({ onLog }) => {
   }, [checklist]);
 
   const handleResultChange = (id, newResult) => {
-    setChecklist(prev => prev.map(item => 
-      item.id === id ? { ...item, result: newResult } : item
-    ));
+    const updated = checklist.map(item => item.id === id ? { ...item, result: newResult } : item);
+    setChecklist(updated);
+    if (complexId && onDataChange) onDataChange(complexId, updated);
   };
 
   const handleNoteChange = (id, newNote) => {
-    setChecklist(prev => prev.map(item => 
-      item.id === id ? { ...item, note: newNote } : item
-    ));
+    const updated = checklist.map(item => item.id === id ? { ...item, note: newNote } : item);
+    setChecklist(updated);
+    if (complexId && onDataChange) onDataChange(complexId, updated);
   };
 
+  // --- 랜딩 모드 (단지 미선택) ---
+  if (!complexId) {
+    const filtered = landingSearch.trim()
+      ? complexList.filter(c =>
+          c.name.toLowerCase().includes(landingSearch.toLowerCase()) ||
+          c.region.toLowerCase().includes(landingSearch.toLowerCase())
+        )
+      : complexList;
+
+    const toggleCheck = (id, e) => {
+      e.stopPropagation();
+      setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+    const allChecked = filtered.length > 0 && filtered.every(c => checkedIds.includes(c.id));
+    const toggleAll = () => {
+      if (allChecked) setCheckedIds(prev => prev.filter(id => !filtered.find(c => c.id === id)));
+      else setCheckedIds(prev => [...new Set([...prev, ...filtered.map(c => c.id)])]);
+    };
+
+    return (
+      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+        <div className="rounded-3xl p-8 shadow-sm border border-slate-300/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ backgroundColor: '#E2E8F0' }}>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><AlertTriangle className="w-6 h-6" /></div>
+            <div>
+              <h2 className="text-lg font-black text-slate-800">취약점 분석 및 조치 — 단지 선택</h2>
+              <p className="text-xs text-slate-400 mt-0.5">점검할 단지를 선택하세요</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <input
+                type="text"
+                value={landingSearch}
+                onChange={(e) => setLandingSearch(e.target.value)}
+                placeholder="단지명 또는 지역 검색..."
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            </div>
+            {/* 뷰 전환 탭 */}
+            <div className="flex bg-slate-100 rounded-xl p-1 gap-0.5">
+              <button onClick={() => setLandingView('grid')} className={`p-2 rounded-lg transition-all ${landingView === 'grid' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}><Grid3X3 className="w-4 h-4" /></button>
+              <button onClick={() => setLandingView('list')} className={`p-2 rounded-lg transition-all ${landingView === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}><ListFilter className="w-4 h-4" /></button>
+            </div>
+            <button
+              onClick={() => alert(checkedIds.length > 0 ? `선택된 ${checkedIds.length}개 단지 취약점 보고서 일괄 다운로드 (데모)` : '전체 단지 취약점 보고서 일괄 다운로드 (데모)')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 whitespace-nowrap ${checkedIds.length > 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-900 text-white hover:bg-black'}`}
+            >
+              <Download className="w-4 h-4" /> 일괄 다운로드{checkedIds.length > 0 && ` (${checkedIds.length})`}
+            </button>
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 text-slate-400 font-medium bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+            <p className="text-sm">검색 결과가 없습니다</p>
+          </div>
+        ) : landingView === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+            {filtered.map(c => {
+              const data = vulnerabilityData[c.id] || [];
+              const good = data.filter(i => i.result === '양호').length;
+              const bad = data.filter(i => i.result === '취약').length;
+              const manual = data.filter(i => i.result === '수동점검').length;
+              const isChecked = checkedIds.includes(c.id);
+              const statusColor = c.status === '정상' ? 'emerald' : c.status === '점검중' ? 'amber' : 'rose';
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => onSelectComplex(c.id)}
+                  className={`bg-white rounded-3xl border shadow-sm p-6 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all group ${isChecked ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200/60 hover:border-indigo-200'}`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => toggleCheck(c.id, e)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer mt-0.5 shrink-0"
+                      />
+                      <div>
+                        <h3 className="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors">{c.name}</h3>
+                        <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" />{c.region}</p>
+                      </div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold bg-${statusColor}-50 text-${statusColor}-600 border border-${statusColor}-100`}>{c.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-indigo-500" />
+                      <span className="text-sm font-black text-slate-800">{data.length}</span>
+                      <span className="text-[10px] font-bold text-slate-400">건</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">양호 {good}</span>
+                      <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">취약 {bad}</span>
+                      <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">수동 {manual}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* 목록 뷰 */
+          <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/50 border-b border-slate-100">
+                <tr>
+                  <th className="px-6 py-4 w-12 text-center">
+                    <input type="checkbox" checked={allChecked} onChange={toggleAll} className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                  </th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">단지명</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">지역</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상태</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">총 항목</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">점검 현황</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상세</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map(c => {
+                  const data = vulnerabilityData[c.id] || [];
+                  const good = data.filter(i => i.result === '양호').length;
+                  const bad = data.filter(i => i.result === '취약').length;
+                  const manual = data.filter(i => i.result === '수동점검').length;
+                  const isChecked = checkedIds.includes(c.id);
+                  return (
+                    <tr key={c.id} className={`transition-colors cursor-pointer ${isChecked ? 'bg-indigo-50/50' : 'hover:bg-slate-50/70'}`} onClick={() => onSelectComplex(c.id)}>
+                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={isChecked} onChange={(e) => toggleCheck(c.id, e)} className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm font-bold text-slate-800 hover:text-indigo-600 transition-colors">{c.name}</span>
+                      </td>
+                      <td className="px-4 py-4 text-xs text-slate-500">{c.region}</td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${c.status === '정상' ? 'bg-emerald-50 text-emerald-600' : c.status === '점검중' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>{c.status}</span>
+                      </td>
+                      <td className="px-4 py-4 text-center text-sm font-black text-indigo-600">{data.length}건</td>
+                      <td className="px-4 py-4">
+                        <div className="flex gap-1.5">
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">양호 {good}</span>
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">취약 {bad}</span>
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">수동 {manual}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button onClick={() => onSelectComplex(c.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"><ChevronRight className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- 상세 모드 (단지 선택됨) ---
+  const currentComplex = complexList.find(c => c.id === complexId);
   const total = checklist.length;
   const good = checklist.filter(i => i.result === '양호').length;
   const bad = checklist.filter(i => i.result === '취약').length;
@@ -2427,7 +2787,7 @@ const VulnerabilityDashboard = ({ onLog }) => {
   return (
     <div className="flex flex-col gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
       {showPreview && (
-        <DocumentPreviewModal 
+        <DocumentPreviewModal
           onClose={() => setShowPreview(false)}
           title="단지서버 보안 취약점 점검 보고서"
           date={inspectDate}
@@ -2436,6 +2796,20 @@ const VulnerabilityDashboard = ({ onLog }) => {
           type="vulnerability"
         />
       )}
+
+      {/* 뒤로가기 바 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-3">
+        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+          <ArrowLeft className="w-4 h-4" /> 단지 목록으로
+        </button>
+        <div className="h-5 w-px bg-slate-200" />
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-indigo-500" />
+          <span className="text-sm font-bold text-slate-800">{currentComplex?.name}</span>
+          <span className="text-xs text-slate-400">{currentComplex?.region}</span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
           <div><p className="text-xs font-bold text-slate-400 uppercase">전체 항목</p><p className="text-3xl font-black text-slate-800 mt-1">{total}</p></div>
@@ -2489,7 +2863,7 @@ const VulnerabilityDashboard = ({ onLog }) => {
               </button>
             </div>
           </div>
-          
+
           <div className="flex-1 p-8">
             <div className="space-y-8">
               {Object.entries(groupedList).map(([category, items], catIdx) => (
@@ -2513,12 +2887,12 @@ const VulnerabilityDashboard = ({ onLog }) => {
                             <td className="px-6 py-4 text-xs font-mono font-bold text-slate-500">{checkItem.id}</td>
                             <td className="px-6 py-4 text-xs font-bold text-slate-700">{checkItem.item}</td>
                             <td className="px-6 py-4 text-center">
-                              <select 
-                                value={checkItem.result} 
+                              <select
+                                value={checkItem.result}
                                 onChange={(e) => handleResultChange(checkItem.id, e.target.value)}
                                 className={`bg-white border border-slate-200 text-xs font-bold rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer transition-colors ${
-                                  checkItem.result === '양호' ? 'text-emerald-600' : 
-                                  checkItem.result === '취약' ? 'text-rose-600' : 
+                                  checkItem.result === '양호' ? 'text-emerald-600' :
+                                  checkItem.result === '취약' ? 'text-rose-600' :
                                   'text-blue-600'
                                 }`}
                               >
@@ -2528,12 +2902,12 @@ const VulnerabilityDashboard = ({ onLog }) => {
                               </select>
                             </td>
                             <td className="px-6 py-4 text-xs text-slate-400">
-                              <input 
-                                type="text" 
+                              <input
+                                type="text"
                                 value={checkItem.note === '-' ? '' : checkItem.note}
                                 onChange={(e) => handleNoteChange(checkItem.id, e.target.value === '' ? '-' : e.target.value)}
                                 placeholder="특이사항 입력..."
-                                className="bg-transparent border-b border-transparent focus:border-indigo-300 outline-none w-full text-xs hover:border-slate-200 transition-colors placeholder:text-slate-300" 
+                                className="bg-transparent border-b border-transparent focus:border-indigo-300 outline-none w-full text-xs hover:border-slate-200 transition-colors placeholder:text-slate-300"
                               />
                             </td>
                           </tr>
@@ -2552,18 +2926,23 @@ const VulnerabilityDashboard = ({ onLog }) => {
 };
 
 // --- [망분리 대시보드 전용 데이터 및 컴포넌트] ---
-const generateHighRiseDevices = () => {
-  const dongs = ['101동', '102동', '103동', '104동', '105동', '106동', '107동', '108동', '109동', '110동'];
+const generateHighRiseDevices = (config = {}) => {
+  const { dongCount = 10, dongStartNum = 101, floorCount = 20, unitsPerFloor = 2 } = config;
+  const dongs = Array.from({ length: dongCount }, (_, i) => `${dongStartNum + i}동`);
   const errorTypes = ['VPN 연결 오류', '보안 모듈 응답 없음', '물리적 회선 단절', '비정상 트래픽 감지', '인증 서버 타임아웃'];
   const devices = [];
   let id = 1;
+  const errorDong1 = dongs[0];
+  const errorDong2 = dongs.length >= 5 ? dongs[4] : dongs[dongs.length - 1];
+  const errorFloors1 = [1, Math.ceil(floorCount * 0.25), Math.ceil(floorCount * 0.5), Math.ceil(floorCount * 0.75), floorCount];
+  const errorFloors2 = [1, Math.ceil(floorCount * 0.3), Math.ceil(floorCount * 0.55), Math.ceil(floorCount * 0.8), Math.max(1, floorCount - 1)];
   dongs.forEach(dong => {
-    for (let f = 1; f <= 20; f++) {
-      for (let r = 1; r <= 2; r++) {
-        const isDong101Fail = dong === '101동' && [1, 5, 10, 15, 20].includes(f) && r === 1;
-        const isDong105Fail = dong === '105동' && [1, 6, 11, 16, 19].includes(f) && r === 2;
-        const isError = isDong101Fail || isDong105Fail;
-        
+    for (let f = 1; f <= floorCount; f++) {
+      for (let r = 1; r <= unitsPerFloor; r++) {
+        const isDong1Fail = dong === errorDong1 && errorFloors1.includes(f) && r === 1;
+        const isDong2Fail = dong === errorDong2 && errorFloors2.includes(f) && r === Math.min(2, unitsPerFloor);
+        const isError = isDong1Fail || isDong2Fail;
+
         const serialNum = `AZ3N050LQ239${String(id).padStart(4, '0')}`;
         const errType = isError ? errorTypes[Math.floor(Math.random() * errorTypes.length)] : null;
 
@@ -2586,12 +2965,13 @@ const generateHighRiseDevices = () => {
 };
 
 // 가상 장애 세대 로그 생성
-const generateInitialHistory = () => {
-  const faultUnits = [
-    '101동 101호', '101동 501호', '101동 1001호', '101동 1501호', '101동 2001호',
-    '105동 102호', '105동 602호', '105동 1102호', '105동 1602호', '105동 1902호'
-  ];
-  
+const generateInitialHistory = (devices = []) => {
+  const faultUnits = devices.filter(d => d.status === 'error').map(d => d.unit);
+  const normalDevices = devices.filter(d => d.status === 'normal');
+  const normalUnits = normalDevices.slice(0, Math.min(5, normalDevices.length)).map(d => d.unit);
+
+  if (faultUnits.length === 0 && normalUnits.length === 0) return [];
+
   const infoMessages = ['시스템 초기화 및 부팅 완료', '보안 모듈 무결성 검사 통과', '하트비트 신호 정상 송수신', '보안 정책 자동 업데이트 확인', '정기 상태 체크 (이상 없음)', '단지서버 동기화 완료', 'VPN 터널링 연결 유지'];
   const errorMessages = ['게이트웨이 인증 서버 응답 지연', '경고: 비정상적인 패킷 유입 감지', '치명적 오류: 하트비트 신호 소실', '물리적 링크 단절 감지', '비정상 트래픽 감지 (차단됨)', 'VPN 터널링 연결 끊김'];
   const humanMessages = ['관리자 원격 접속 시도', '현장 점검 요청 접수', '장비 전원 리셋 명령 전송', '보안 정책 수동 오버라이드 적용', '유지보수 팀 현장 출동 지시', '담당자 유선 확인 완료'];
@@ -2600,8 +2980,6 @@ const generateInitialHistory = () => {
   let logId = 1;
   const today = new Date();
 
-  // 정상 세대 일부를 포함하여 로그 생성
-  const normalUnits = ['102동 201호', '103동 302호', '104동 401호', '106동 502호', '107동 1101호'];
   const allUnits = [...faultUnits, ...normalUnits];
 
   allUnits.forEach(unit => {
@@ -2740,9 +3118,17 @@ const CircularProgress = ({ value, label, icon: Icon, colorClass, strokeColor })
 };
 
 // isAdmin 프롭스를 추가로 받아 화면의 권한을 제어합니다.
-const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin }) => {
-  const [devices, setDevices] = useState(generateHighRiseDevices());
-  const [history, setHistory] = useState(generateInitialHistory());
+const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, complexConfig, onRegisterDevice }) => {
+  const [isDeviceRegistered, setIsDeviceRegistered] = useState(complexConfig?.deviceRegistered === true);
+  const [devices, setDevices] = useState(() => {
+    if (!complexConfig?.deviceRegistered) return [];
+    return generateHighRiseDevices(complexConfig || {});
+  });
+  const [history, setHistory] = useState(() => {
+    if (!complexConfig?.deviceRegistered) return [];
+    const d = generateHighRiseDevices(complexConfig || {});
+    return generateInitialHistory(d);
+  });
   const [viewMode, setViewMode] = useState('complex'); 
   const [selectedDong, setSelectedDong] = useState(null);
   const [activeTab, setActiveTab] = useState('grid'); 
@@ -2751,13 +3137,16 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
   const [terminalLogs, setTerminalLogs] = useState(['[SYSTEM] AXGATE 안전홈관리 시스템 가동 시작...', '[INFO] 보안 모듈 로드 완료.']);
   const [command, setCommand] = useState('');
   
-  const [batchScopeType, setBatchScopeType] = useState('all'); 
-  const [batchScopeDong, setBatchScopeDong] = useState('101동');
-  const [batchScopeUnit, setBatchScopeUnit] = useState('101동 101호');
+  const firstDong = `${(complexConfig?.dongStartNum || 101)}동`;
+  const firstUnit = `${firstDong} 101호`;
+
+  const [batchScopeType, setBatchScopeType] = useState('all');
+  const [batchScopeDong, setBatchScopeDong] = useState(firstDong);
+  const [batchScopeUnit, setBatchScopeUnit] = useState(firstUnit);
 
   const [reportType, setReportType] = useState('complex');
-  const [reportTargetDong, setReportTargetDong] = useState('101동');
-  const [reportTargetUnit, setReportTargetUnit] = useState('101동 101호');
+  const [reportTargetDong, setReportTargetDong] = useState(firstDong);
+  const [reportTargetUnit, setReportTargetUnit] = useState(firstUnit);
   const [scheduleType, setScheduleType] = useState('none'); 
   const [showUnitReportModal, setShowUnitReportModal] = useState(false);
   const [showFailureListModal, setShowFailureListModal] = useState(false);
@@ -2811,14 +3200,45 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
   const [resourceData, setResourceData] = useState({ cpu: 15, memory: 30 });
   
   const [packetData, setPacketData] = useState(new Array(20).fill(0).map(() => (Math.random() * 50 + 20).toFixed(1)));
-  const [bgImage, setBgImage] = useState(null);
+  const bgKey = `xg_bg_image_${complexConfig?.id || 'default'}`;
+  const [bgImage, setBgImage] = useState(() => {
+    try { return localStorage.getItem(bgKey) || null; } catch { return null; }
+  });
+  const buildDongPositions = (cfg) => {
+    const cnt = cfg.dongCount || 10;
+    const start = cfg.dongStartNum || 101;
+    const pos = {};
+    for (let i = 0; i < cnt; i++) {
+      const cols = Math.ceil(Math.sqrt(cnt));
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      const totalRows = Math.ceil(cnt / cols);
+      pos[`${start + i}동`] = {
+        top: 15 + (row / Math.max(totalRows - 1, 1)) * 65,
+        left: 10 + (col / Math.max(cols - 1, 1)) * 80,
+      };
+    }
+    return pos;
+  };
   const [dongPositions, setDongPositions] = useState(() => {
-    const saved = localStorage.getItem('xg_dong_positions');
-    return saved ? JSON.parse(saved) : {
-      '101동': { top: 65, left: 46 }, '102동': { top: 60, left: 65 }, '103동': { top: 55, left: 80 },
-      '104동': { top: 22, left: 73 }, '105동': { top: 22, left: 53 }, '106동': { top: 22, left: 38 },
-      '107동': { top: 28, left: 22 }, '108동': { top: 55, left: 18 }, '109동': { top: 75, left: 15 }, '110동': { top: 68, left: 33 },
-    };
+    const cfg = complexConfig || {};
+    const cnt = cfg.dongCount || 10;
+    const start = cfg.dongStartNum || 101;
+    const expectedDongs = Array.from({ length: cnt }, (_, i) => `${start + i}동`).sort();
+    const cKey = `xg_dong_positions_${cfg.id || 'default'}`;
+    try {
+      const saved = localStorage.getItem(cKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const savedDongs = Object.keys(parsed).sort();
+        if (savedDongs.length === expectedDongs.length && savedDongs.every((d, i) => d === expectedDongs[i])) {
+          return parsed;
+        }
+      }
+    } catch {}
+    const pos = buildDongPositions(cfg);
+    try { localStorage.setItem(cKey, JSON.stringify(pos)); } catch {}
+    return pos;
   });
   
   const [draggingDong, setDraggingDong] = useState(null);
@@ -2857,7 +3277,7 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
       setBatchScopeUnit('');
     } else {
       setBatchScopeType('all');
-      setBatchScopeDong('101동'); 
+      setBatchScopeDong(firstDong);
       setBatchScopeUnit('');
     }
   }, [selectedDeviceId, selectedDong, devices]);
@@ -2869,7 +3289,6 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
   }, [devices]);
 
   const failedDevices = useMemo(() => devices.filter(d => d.status === 'error'), [devices]);
-  const dongList = ['101동', '102동', '103동', '104동', '105동', '106동', '107동', '108동', '109동', '110동'];
   const uniqueDongs = useMemo(() => [...new Set(devices.map(d => d.dong))].sort(), [devices]);
   const getUnitsByDong = (dong) => devices.filter(d => d.dong === dong).map(d => d.unit).sort();
   const selectedDevice = useMemo(() => devices.find(d => d.id === selectedDeviceId), [devices, selectedDeviceId]);
@@ -2924,7 +3343,8 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
     setDongPositions(prev => {
       const next = { ...prev, [draggingDong]: { top: y, left: x } };
-      localStorage.setItem('xg_dong_positions', JSON.stringify(next));
+      const cKey = `xg_dong_positions_${complexConfig?.id || 'default'}`;
+      localStorage.setItem(cKey, JSON.stringify(next));
       return next;
     });
   };
@@ -2971,7 +3391,7 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
     setSelectedDong(null);
     setSelectedDeviceId(null);
     setActiveTab('grid');
-    setTerminalLogs(prev => [...prev, `[NAV] 단지 전체 조감도로 복귀.`]);
+    setTerminalLogs(prev => [...prev, `[NAV] 단지 전체 배치도로 복귀.`]);
   };
 
   const enterBuilding = (dongName) => {
@@ -3011,7 +3431,11 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => setBgImage(event.target.result);
+      reader.onload = (event) => {
+        const dataUrl = event.target.result;
+        setBgImage(dataUrl);
+        try { localStorage.setItem(bgKey, dataUrl); } catch {}
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -3037,9 +3461,75 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
     setQuickControlAction(null);
   };
 
+  const handleDeviceRegister = () => {
+    const cfg = complexConfig || {};
+    const newDevices = generateHighRiseDevices(cfg);
+    setDevices(newDevices);
+    setHistory(generateInitialHistory(newDevices));
+    const pos = buildDongPositions(cfg);
+    setDongPositions(pos);
+    try { localStorage.setItem(`xg_dong_positions_${cfg.id || 'default'}`, JSON.stringify(pos)); } catch {}
+    setIsDeviceRegistered(true);
+    if (onRegisterDevice) onRegisterDevice();
+  };
+
+  if (!isDeviceRegistered) {
+    return (
+      <div className="bg-slate-50 text-slate-800 rounded-[2.5rem] p-6 md:p-10 font-sans select-none relative overflow-hidden flex flex-col items-center justify-center shadow-sm border border-slate-200/60 animate-in fade-in duration-500 min-h-[500px]">
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/15 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-200/15 rounded-full blur-[120px]" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center text-center max-w-lg">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center mb-6 shadow-sm border border-indigo-200/50">
+            <Shield className="w-10 h-10 text-indigo-400" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 mb-3">장비 등록이 필요합니다</h2>
+          <p className="text-sm text-slate-500 mb-2 leading-relaxed">
+            <span className="font-bold text-slate-700">{complexConfig?.name || '선택된 단지'}</span>의 단지관리 시스템을 사용하려면 먼저 장비 등록을 완료해야 합니다.
+          </p>
+          <div className="w-full bg-white rounded-2xl border border-slate-200 p-5 mb-6 text-left">
+            <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">등록 예정 구성 정보</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div className="text-[11px] text-slate-400 mb-0.5">동 수</div>
+                <div className="text-lg font-black text-slate-800">{complexConfig?.dongCount || 10}<span className="text-xs font-normal text-slate-400 ml-1">개동</span></div>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div className="text-[11px] text-slate-400 mb-0.5">시작 동번호</div>
+                <div className="text-lg font-black text-slate-800">{complexConfig?.dongStartNum || 101}<span className="text-xs font-normal text-slate-400 ml-1">동</span></div>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div className="text-[11px] text-slate-400 mb-0.5">층 수</div>
+                <div className="text-lg font-black text-slate-800">{complexConfig?.floorCount || 20}<span className="text-xs font-normal text-slate-400 ml-1">층</span></div>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div className="text-[11px] text-slate-400 mb-0.5">층당 호수</div>
+                <div className="text-lg font-black text-slate-800">{complexConfig?.unitsPerFloor || 2}<span className="text-xs font-normal text-slate-400 ml-1">세대</span></div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center">
+              <span className="text-xs text-slate-400">총 세대 수</span>
+              <span className="text-sm font-black text-indigo-600">{(complexConfig?.dongCount || 10) * (complexConfig?.floorCount || 20) * (complexConfig?.unitsPerFloor || 2)}세대</span>
+            </div>
+          </div>
+          {isAdmin ? (
+            <button onClick={handleDeviceRegister} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" /> 장비 등록 및 시스템 활성화
+            </button>
+          ) : (
+            <div className="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl text-sm font-bold border border-slate-200 flex items-center gap-2">
+              <Lock className="w-4 h-4" /> 관리자(ADMIN)만 등록할 수 있습니다
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-slate-50 text-slate-800 rounded-[2.5rem] p-4 md:p-6 font-sans select-none relative overflow-hidden flex flex-col shadow-sm border border-slate-200/60 animate-in fade-in duration-500">
-      
+
       {/* Background Decor */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/20 rounded-full blur-[120px]" />
@@ -3387,7 +3877,7 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
                   )}
                   <div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-slate-100 text-sm font-bold text-slate-600 flex items-center gap-2">
                     <Globe size={16} className="text-indigo-500"/>
-                    {viewMode === 'complex' ? '단지 전체 조감도' : `${selectedDong} 상세 관제`}
+                    {viewMode === 'complex' ? '단지 전체 배치도' : `${selectedDong} 상세 관제`}
                     {!isAdmin && <span className="ml-2 px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] rounded">읽기 전용</span>}
                     {isAdmin && <span className="ml-2 px-2 py-0.5 bg-rose-100 text-rose-600 text-[10px] rounded">최고 권한</span>}
                   </div>
@@ -3420,12 +3910,23 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
                           {/* Background Image */}
                           <div className="absolute inset-0 bg-slate-100 pointer-events-none">
                              {bgImage ? (
-                               <img src={bgImage} alt="Map" className="w-full h-full object-cover" />
+                               <>
+                                 <img src={bgImage} alt="Map" className="w-full h-full object-cover" />
+                                 <div className="absolute bottom-4 right-4 flex items-center gap-2 pointer-events-auto z-20">
+                                   <label className="px-4 py-2 bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl text-xs font-bold text-slate-600 cursor-pointer hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-lg flex items-center gap-2">
+                                     <Upload size={14}/> 배치도 변경
+                                     <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
+                                   </label>
+                                   <button onClick={() => { setBgImage(null); try { localStorage.removeItem(bgKey); } catch {} }} className="px-4 py-2 bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl text-xs font-bold text-rose-500 hover:border-rose-300 hover:bg-rose-50 transition-all shadow-lg flex items-center gap-2">
+                                     <Trash2 size={14}/> 삭제
+                                   </button>
+                                 </div>
+                               </>
                              ) : (
                                <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-slate-300">
                                   <MapIcon size={64} strokeWidth={1} />
                                   <label className="px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-500 cursor-pointer hover:border-indigo-300 hover:text-indigo-600 transition-all pointer-events-auto shadow-sm flex items-center gap-2">
-                                    <Upload size={16}/> 조감도 이미지 업로드
+                                    <Upload size={16}/> 배치도 이미지 업로드
                                     <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
                                   </label>
                                   <p className="text-xs">이미지를 업로드하면 배경으로 설정됩니다.</p>
@@ -3935,7 +4436,7 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin })
   );
 };
 
-const SafetyInspectionDashboard = ({ onLog }) => {
+const SafetyInspectionDashboard = ({ onLog, complexId, complexList, safetyInspectionData, onDataChange, onSelectComplex }) => {
   // 결재 상태 관리
   const [approvals, setApprovals] = useState([
     { role: '담 당', name: '박신일', date: '02.20', status: 'approved' },
@@ -3945,15 +4446,24 @@ const SafetyInspectionDashboard = ({ onLog }) => {
   ]);
   const [showPreview, setShowPreview] = useState(false);
   const [inspectDate, setInspectDate] = useState(new Date().toISOString().split('T')[0]);
-  
+  const [landingSearch, setLandingSearch] = useState('');
+  const [landingView, setLandingView] = useState('grid');
+  const [checkedIds, setCheckedIds] = useState([]);
+
   const [checklist, setChecklist] = useState(
-    SAFETY_INSPECTION_CHECKLIST.map((item, idx) => ({ ...item, id: `SI-${idx}`, result: '양호' }))
+    complexId ? (safetyInspectionData[complexId] || []) : []
   );
 
+  useEffect(() => {
+    if (complexId && safetyInspectionData[complexId]) {
+      setChecklist(safetyInspectionData[complexId]);
+    }
+  }, [complexId]);
+
   const handleResultChange = (id, newResult) => {
-    setChecklist(prev => prev.map(item => 
-      item.id === id ? { ...item, result: newResult } : item
-    ));
+    const updated = checklist.map(item => item.id === id ? { ...item, result: newResult } : item);
+    setChecklist(updated);
+    if (complexId && onDataChange) onDataChange(complexId, updated);
   };
 
   const groupedList = checklist.reduce((acc, curr) => {
@@ -3963,10 +4473,173 @@ const SafetyInspectionDashboard = ({ onLog }) => {
     return acc;
   }, {});
 
+  // --- 랜딩 모드 (단지 미선택) ---
+  if (!complexId) {
+    const filtered = landingSearch.trim()
+      ? complexList.filter(c =>
+          c.name.toLowerCase().includes(landingSearch.toLowerCase()) ||
+          c.region.toLowerCase().includes(landingSearch.toLowerCase())
+        )
+      : complexList;
+
+    const toggleCheck = (id, e) => {
+      e.stopPropagation();
+      setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+    const allChecked = filtered.length > 0 && filtered.every(c => checkedIds.includes(c.id));
+    const toggleAll = () => {
+      if (allChecked) setCheckedIds(prev => prev.filter(id => !filtered.find(c => c.id === id)));
+      else setCheckedIds(prev => [...new Set([...prev, ...filtered.map(c => c.id)])]);
+    };
+
+    return (
+      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+        <div className="rounded-3xl p-8 shadow-sm border border-slate-300/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ backgroundColor: '#E2E8F0' }}>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><ClipboardCheck className="w-6 h-6" /></div>
+            <div>
+              <h2 className="text-lg font-black text-slate-800">홈네트워크 안전점검 — 단지 선택</h2>
+              <p className="text-xs text-slate-400 mt-0.5">점검할 단지를 선택하세요</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <input
+                type="text"
+                value={landingSearch}
+                onChange={(e) => setLandingSearch(e.target.value)}
+                placeholder="단지명 또는 지역 검색..."
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            </div>
+            {/* 뷰 전환 탭 */}
+            <div className="flex bg-slate-100 rounded-xl p-1 gap-0.5">
+              <button onClick={() => setLandingView('grid')} className={`p-2 rounded-lg transition-all ${landingView === 'grid' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}><Grid3X3 className="w-4 h-4" /></button>
+              <button onClick={() => setLandingView('list')} className={`p-2 rounded-lg transition-all ${landingView === 'list' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}><ListFilter className="w-4 h-4" /></button>
+            </div>
+            <button
+              onClick={() => alert(checkedIds.length > 0 ? `선택된 ${checkedIds.length}개 단지 안전점검 보고서 일괄 다운로드 (데모)` : '전체 단지 안전점검 보고서 일괄 다운로드 (데모)')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 whitespace-nowrap ${checkedIds.length > 0 ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-slate-900 text-white hover:bg-black'}`}
+            >
+              <Download className="w-4 h-4" /> 일괄 다운로드{checkedIds.length > 0 && ` (${checkedIds.length})`}
+            </button>
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 text-slate-400 font-medium bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+            <p className="text-sm">검색 결과가 없습니다</p>
+          </div>
+        ) : landingView === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+            {filtered.map(c => {
+              const data = safetyInspectionData[c.id] || [];
+              const good = data.filter(i => i.result === '양호').length;
+              const bad = data.filter(i => i.result === '불량').length;
+              const isChecked = checkedIds.includes(c.id);
+              const statusColor = c.status === '정상' ? 'emerald' : c.status === '점검중' ? 'amber' : 'rose';
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => onSelectComplex(c.id)}
+                  className={`bg-white rounded-3xl border shadow-sm p-6 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all group ${isChecked ? 'border-emerald-300 ring-2 ring-emerald-100' : 'border-slate-200/60 hover:border-emerald-200'}`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => toggleCheck(c.id, e)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer mt-0.5 shrink-0"
+                      />
+                      <div>
+                        <h3 className="text-sm font-black text-slate-800 group-hover:text-emerald-600 transition-colors">{c.name}</h3>
+                        <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" />{c.region}</p>
+                      </div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold bg-${statusColor}-50 text-${statusColor}-600 border border-${statusColor}-100`}>{c.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
+                    <div className="flex items-center gap-2">
+                      <ClipboardCheck className="w-4 h-4 text-emerald-500" />
+                      <span className="text-sm font-black text-slate-800">{data.length}</span>
+                      <span className="text-[10px] font-bold text-slate-400">건</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">양호 {good}</span>
+                      <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">불량 {bad}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* 목록 뷰 */
+          <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/50 border-b border-slate-100">
+                <tr>
+                  <th className="px-6 py-4 w-12 text-center">
+                    <input type="checkbox" checked={allChecked} onChange={toggleAll} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                  </th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">단지명</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">지역</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상태</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">총 항목</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">점검 현황</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상세</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map(c => {
+                  const data = safetyInspectionData[c.id] || [];
+                  const good = data.filter(i => i.result === '양호').length;
+                  const bad = data.filter(i => i.result === '불량').length;
+                  const isChecked = checkedIds.includes(c.id);
+                  return (
+                    <tr key={c.id} className={`transition-colors cursor-pointer ${isChecked ? 'bg-emerald-50/50' : 'hover:bg-slate-50/70'}`} onClick={() => onSelectComplex(c.id)}>
+                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={isChecked} onChange={(e) => toggleCheck(c.id, e)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm font-bold text-slate-800 hover:text-emerald-600 transition-colors">{c.name}</span>
+                      </td>
+                      <td className="px-4 py-4 text-xs text-slate-500">{c.region}</td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${c.status === '정상' ? 'bg-emerald-50 text-emerald-600' : c.status === '점검중' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>{c.status}</span>
+                      </td>
+                      <td className="px-4 py-4 text-center text-sm font-black text-emerald-600">{data.length}건</td>
+                      <td className="px-4 py-4">
+                        <div className="flex gap-1.5">
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">양호 {good}</span>
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">불량 {bad}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button onClick={() => onSelectComplex(c.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"><ChevronRight className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- 상세 모드 (단지 선택됨) ---
+  const currentComplex = complexList.find(c => c.id === complexId);
+
   return (
     <div className="flex flex-col gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
       {showPreview && (
-        <DocumentPreviewModal 
+        <DocumentPreviewModal
           onClose={() => setShowPreview(false)}
           title="홈네트워크 안전점검표 - 일간 레포트"
           date={inspectDate}
@@ -3975,6 +4648,20 @@ const SafetyInspectionDashboard = ({ onLog }) => {
           type="safety"
         />
       )}
+
+      {/* 뒤로가기 바 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-3">
+        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+          <ArrowLeft className="w-4 h-4" /> 단지 목록으로
+        </button>
+        <div className="h-5 w-px bg-slate-200" />
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-emerald-500" />
+          <span className="text-sm font-bold text-slate-800">{currentComplex?.name}</span>
+          <span className="text-xs text-slate-400">{currentComplex?.region}</span>
+        </div>
+      </div>
+
       {/* 상단 컨트롤 바 */}
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/60 flex justify-between items-center">
         <div className="flex items-center gap-6">
@@ -4020,7 +4707,7 @@ const SafetyInspectionDashboard = ({ onLog }) => {
             </button>
           </div>
         </div>
-        
+
         <div className="flex-1 p-8">
           <div className="space-y-8">
             {Object.entries(groupedList).map(([category, items], catIdx) => (
@@ -4049,12 +4736,12 @@ const SafetyInspectionDashboard = ({ onLog }) => {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <select 
+                            <select
                               value={checkItem.result}
                               onChange={(e) => handleResultChange(checkItem.id, e.target.value)}
                               className={`bg-white border border-slate-200 text-xs font-bold rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-emerald-100 cursor-pointer hover:border-emerald-300 transition-colors ${
-                                checkItem.result === '양호' ? 'text-emerald-600' : 
-                                checkItem.result === '불량' ? 'text-rose-600' : 
+                                checkItem.result === '양호' ? 'text-emerald-600' :
+                                checkItem.result === '불량' ? 'text-rose-600' :
                                 'text-slate-400'
                               }`}
                             >
@@ -4077,21 +4764,376 @@ const SafetyInspectionDashboard = ({ onLog }) => {
   );
 };
 
-const ReportDashboard = () => {
+const ComplexManagementReportDashboard = ({ onLog, complexId, complexList, complexMgmtData, onDataChange, onSelectComplex }) => {
+  const [checklist, setChecklist] = useState(complexId ? (complexMgmtData[complexId] || []) : []);
+  const [showPreview, setShowPreview] = useState(false);
+  const [inspectDate, setInspectDate] = useState("2026-02-20");
+  const [landingSearch, setLandingSearch] = useState('');
+  const [landingView, setLandingView] = useState('grid');
+  const [checkedIds, setCheckedIds] = useState([]);
+
+  const [approvals, setApprovals] = useState([
+    { role: '담 당', name: '장정구', date: '02.20', status: 'approved' },
+    { role: '주 임', name: '', date: '', status: 'pending' },
+    { role: '과 장', name: '', date: '', status: 'pending' },
+    { role: '소 장', name: '', date: '', status: 'pending' }
+  ]);
+
+  useEffect(() => {
+    if (complexId && complexMgmtData[complexId]) {
+      setChecklist(complexMgmtData[complexId]);
+    }
+  }, [complexId]);
+
+  const groupedList = useMemo(() => {
+    return checklist.reduce((acc, curr) => {
+      const { category } = curr;
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(curr);
+      return acc;
+    }, {});
+  }, [checklist]);
+
+  const handleResultChange = (id, newResult) => {
+    const updated = checklist.map(item => item.id === id ? { ...item, result: newResult } : item);
+    setChecklist(updated);
+    if (complexId && onDataChange) onDataChange(complexId, updated);
+  };
+
+  const handleNoteChange = (id, newNote) => {
+    const updated = checklist.map(item => item.id === id ? { ...item, note: newNote } : item);
+    setChecklist(updated);
+    if (complexId && onDataChange) onDataChange(complexId, updated);
+  };
+
+  // --- 랜딩 모드 (단지 미선택) ---
+  if (!complexId) {
+    const filtered = landingSearch.trim()
+      ? complexList.filter(c =>
+          c.name.toLowerCase().includes(landingSearch.toLowerCase()) ||
+          c.region.toLowerCase().includes(landingSearch.toLowerCase())
+        )
+      : complexList;
+
+    const toggleCheck = (id, e) => {
+      e.stopPropagation();
+      setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+    const allChecked = filtered.length > 0 && filtered.every(c => checkedIds.includes(c.id));
+    const toggleAll = () => {
+      if (allChecked) setCheckedIds(prev => prev.filter(id => !filtered.find(c => c.id === id)));
+      else setCheckedIds(prev => [...new Set([...prev, ...filtered.map(c => c.id)])]);
+    };
+
+    return (
+      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+        <div className="rounded-3xl p-8 shadow-sm border border-slate-300/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ backgroundColor: '#E2E8F0' }}>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-teal-50 text-teal-600 rounded-xl"><Activity className="w-6 h-6" /></div>
+            <div>
+              <h2 className="text-lg font-black text-slate-800">단지관리 운영점검 — 단지 선택</h2>
+              <p className="text-xs text-slate-400 mt-0.5">점검할 단지를 선택하세요</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <input
+                type="text"
+                value={landingSearch}
+                onChange={(e) => setLandingSearch(e.target.value)}
+                placeholder="단지명 또는 지역 검색..."
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all placeholder:text-slate-400"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            </div>
+            <div className="flex bg-slate-100 rounded-xl p-1 gap-0.5">
+              <button onClick={() => setLandingView('grid')} className={`p-2 rounded-lg transition-all ${landingView === 'grid' ? 'bg-white shadow-sm text-teal-600' : 'text-slate-400 hover:text-slate-600'}`}><Grid3X3 className="w-4 h-4" /></button>
+              <button onClick={() => setLandingView('list')} className={`p-2 rounded-lg transition-all ${landingView === 'list' ? 'bg-white shadow-sm text-teal-600' : 'text-slate-400 hover:text-slate-600'}`}><ListFilter className="w-4 h-4" /></button>
+            </div>
+            <button
+              onClick={() => alert(checkedIds.length > 0 ? `선택된 ${checkedIds.length}개 단지 관리보고서 일괄 다운로드 (데모)` : '전체 단지 관리보고서 일괄 다운로드 (데모)')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 whitespace-nowrap ${checkedIds.length > 0 ? 'bg-teal-600 text-white hover:bg-teal-700' : 'bg-slate-900 text-white hover:bg-black'}`}
+            >
+              <Download className="w-4 h-4" /> 일괄 다운로드{checkedIds.length > 0 && ` (${checkedIds.length})`}
+            </button>
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 text-slate-400 font-medium bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+            <p className="text-sm">검색 결과가 없습니다</p>
+          </div>
+        ) : landingView === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+            {filtered.map(c => {
+              const data = complexMgmtData[c.id] || [];
+              const good = data.filter(i => i.result === '양호').length;
+              const bad = data.filter(i => i.result === '미흡').length;
+              const supplement = data.filter(i => i.result === '보완필요').length;
+              const isChecked = checkedIds.includes(c.id);
+              const statusColor = c.status === '정상' ? 'emerald' : c.status === '점검중' ? 'amber' : 'rose';
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => onSelectComplex(c.id)}
+                  className={`bg-white rounded-3xl border shadow-sm p-6 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all group ${isChecked ? 'border-teal-300 ring-2 ring-teal-100' : 'border-slate-200/60 hover:border-teal-200'}`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => toggleCheck(c.id, e)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer mt-0.5 shrink-0"
+                      />
+                      <div>
+                        <h3 className="text-sm font-black text-slate-800 group-hover:text-teal-600 transition-colors">{c.name}</h3>
+                        <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" />{c.region}</p>
+                      </div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold bg-${statusColor}-50 text-${statusColor}-600 border border-${statusColor}-100`}>{c.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-teal-500" />
+                      <span className="text-sm font-black text-slate-800">{data.length}</span>
+                      <span className="text-[10px] font-bold text-slate-400">건</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">양호 {good}</span>
+                      <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">미흡 {bad}</span>
+                      <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">보완 {supplement}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/50 border-b border-slate-100">
+                <tr>
+                  <th className="px-6 py-4 w-12 text-center">
+                    <input type="checkbox" checked={allChecked} onChange={toggleAll} className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
+                  </th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">단지명</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">지역</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상태</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">총 항목</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">점검 현황</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상세</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map(c => {
+                  const data = complexMgmtData[c.id] || [];
+                  const good = data.filter(i => i.result === '양호').length;
+                  const bad = data.filter(i => i.result === '미흡').length;
+                  const supplement = data.filter(i => i.result === '보완필요').length;
+                  const isChecked = checkedIds.includes(c.id);
+                  return (
+                    <tr key={c.id} className={`transition-colors cursor-pointer ${isChecked ? 'bg-teal-50/50' : 'hover:bg-slate-50/70'}`} onClick={() => onSelectComplex(c.id)}>
+                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={isChecked} onChange={(e) => toggleCheck(c.id, e)} className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm font-bold text-slate-800 hover:text-teal-600 transition-colors">{c.name}</span>
+                      </td>
+                      <td className="px-4 py-4 text-xs text-slate-500">{c.region}</td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${c.status === '정상' ? 'bg-emerald-50 text-emerald-600' : c.status === '점검중' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>{c.status}</span>
+                      </td>
+                      <td className="px-4 py-4 text-center text-sm font-black text-teal-600">{data.length}건</td>
+                      <td className="px-4 py-4">
+                        <div className="flex gap-1.5">
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">양호 {good}</span>
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">미흡 {bad}</span>
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">보완 {supplement}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button onClick={() => onSelectComplex(c.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-all"><ChevronRight className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- 상세 모드 (단지 선택됨) ---
+  const currentComplex = complexList.find(c => c.id === complexId);
+  const total = checklist.length;
+  const good = checklist.filter(i => i.result === '양호').length;
+  const bad = checklist.filter(i => i.result === '미흡').length;
+  const supplement = checklist.filter(i => i.result === '보완필요').length;
+
+  return (
+    <div className="flex flex-col gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+      {showPreview && (
+        <DocumentPreviewModal
+          onClose={() => setShowPreview(false)}
+          title="단지관리 점검 보고서"
+          date={inspectDate}
+          approvals={approvals}
+          checklist={checklist}
+          type="complex_mgmt"
+        />
+      )}
+
+      {/* 뒤로가기 바 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-3">
+        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-teal-600 hover:bg-teal-50 transition-all">
+          <ArrowLeft className="w-4 h-4" /> 단지 목록으로
+        </button>
+        <div className="h-5 w-px bg-slate-200" />
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-teal-500" />
+          <span className="text-sm font-bold text-slate-800">{currentComplex?.name}</span>
+          <span className="text-xs text-slate-400">{currentComplex?.region}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div><p className="text-xs font-bold text-slate-400 uppercase">전체 항목</p><p className="text-3xl font-black text-slate-800 mt-1">{total}</p></div>
+          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500"><ListFilter /></div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-sm flex items-center justify-between">
+          <div><p className="text-xs font-bold text-emerald-600 uppercase">양호 (Good)</p><p className="text-3xl font-black text-emerald-600 mt-1">{good}</p></div>
+          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><CheckCircle2 /></div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm flex items-center justify-between">
+          <div><p className="text-xs font-bold text-rose-600 uppercase">미흡 (Insufficient)</p><p className="text-3xl font-black text-rose-600 mt-1">{bad}</p></div>
+          <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600"><AlertTriangle /></div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div><p className="text-xs font-bold text-slate-500 uppercase">보완필요 (Supplement)</p><p className="text-3xl font-black text-slate-600 mt-1">{supplement}</p></div>
+          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500"><ClipboardCheck /></div>
+        </div>
+      </div>
+
+      <div className="flex flex-col h-full gap-6">
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/60 flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-teal-50 text-teal-600 rounded-xl"><CalendarDays className="w-6 h-6" /></div>
+              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">점검 일자</p><input type="date" value={inspectDate} onChange={(e) => setInspectDate(e.target.value)} className="font-bold text-slate-800 bg-transparent outline-none cursor-pointer hover:text-teal-600 transition-colors" /></div>
+            </div>
+            <div className="h-10 w-px bg-slate-100"></div>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><User className="w-6 h-6" /></div>
+              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">점검자</p><input type="text" defaultValue="장정구" className="font-bold text-slate-800 bg-transparent outline-none w-24 hover:text-emerald-600 transition-colors" /></div>
+            </div>
+          </div>
+
+          <ApprovalSystem approvals={approvals} setApprovals={setApprovals} />
+        </div>
+
+        <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 overflow-hidden flex flex-col">
+          <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex justify-between items-center">
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
+              <Activity className="w-6 h-6 text-teal-600" /> 단지관리 점검 체크리스트
+            </h3>
+            <div className="flex gap-2">
+              <button onClick={() => onLog && onLog('[COMPLEX_MGMT] 점검 결과가 저장되었습니다.')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
+                <CheckSquare className="w-4 h-4" /> 결과 저장
+              </button>
+              <button onClick={() => setShowPreview(true)} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-teal-600 hover:border-teal-200 transition-all shadow-sm flex items-center gap-2">
+                <Eye className="w-4 h-4" /> 미리보기
+              </button>
+              <button onClick={() => setShowPreview(true)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md flex items-center gap-2">
+                <Download className="w-4 h-4" /> PDF 다운로드
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 p-8">
+            <div className="space-y-8">
+              {Object.entries(groupedList).map(([category, items], catIdx) => (
+                <div key={catIdx} className="bg-slate-50 rounded-3xl p-6 border border-slate-200/60">
+                  <h4 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-teal-500 rounded-full"></div> {category}
+                  </h4>
+                  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50/50 border-b border-slate-100">
+                        <tr>
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider w-24">ID</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider w-1/2">점검 항목</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider w-32 text-center">점검 결과</th>
+                          <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider">비고</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {items.map((checkItem, idx) => (
+                          <tr key={idx} className="hover:bg-teal-50/30 transition-colors group">
+                            <td className="px-6 py-4 text-xs font-mono font-bold text-slate-500">{checkItem.id}</td>
+                            <td className="px-6 py-4 text-xs font-bold text-slate-700">{checkItem.item}</td>
+                            <td className="px-6 py-4 text-center">
+                              <select
+                                value={checkItem.result}
+                                onChange={(e) => handleResultChange(checkItem.id, e.target.value)}
+                                className={`bg-white border border-slate-200 text-xs font-bold rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-teal-100 cursor-pointer transition-colors ${
+                                  checkItem.result === '양호' ? 'text-emerald-600' :
+                                  checkItem.result === '미흡' ? 'text-rose-600' :
+                                  'text-slate-500'
+                                }`}
+                              >
+                                <option value="양호" className="text-emerald-600">양호</option>
+                                <option value="미흡" className="text-rose-600">미흡</option>
+                                <option value="보완필요" className="text-slate-500">보완필요</option>
+                              </select>
+                            </td>
+                            <td className="px-6 py-4 text-xs text-slate-400">
+                              <input
+                                type="text"
+                                value={checkItem.note === '-' ? '' : checkItem.note}
+                                onChange={(e) => handleNoteChange(checkItem.id, e.target.value === '' ? '-' : e.target.value)}
+                                placeholder="특이사항 입력..."
+                                className="bg-transparent border-b border-transparent focus:border-teal-300 outline-none w-full text-xs hover:border-slate-200 transition-colors placeholder:text-slate-300"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, isAdmin, onDataChange }) => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('전체');
+  const [landingSearch, setLandingSearch] = useState('');
+  const [landingView, setLandingView] = useState('grid');
+  const [checkedIds, setCheckedIds] = useState([]);
+  const [statusDropdownId, setStatusDropdownId] = useState(null);
+  const [previewReport, setPreviewReport] = useState(null);
 
-  const reports = [
-    { id: 'REP-2026-02-21', date: '2026-02-21', title: '디에이치 아너힐즈 단지 통합 점검 보고서', type: '단지 보고서', author: '박신일', size: '3.1 MB' },
-    { id: 'REP-2026-02-20', date: '2026-02-20', title: '101동 101호 보안 인프라 점검 보고서', type: '단지 보고서', author: '장정구', size: '1.2 MB' },
-    { id: 'REP-2026-02-19', date: '2026-02-19', title: '2월 3주차 단지서버 보안 취약점 정기 점검 보고서', type: '취약점 점검', author: '장정구', size: '2.4 MB' },
-    { id: 'REP-2026-02-15', date: '2026-02-15', title: '2월 2주차 홈네트워크 안전점검표', type: '안전 점검', author: '박신일', size: '1.8 MB' },
-    { id: 'REP-2026-02-08', date: '2026-02-08', title: '2월 1주차 홈네트워크 안전점검표', type: '안전 점검', author: '박신일', size: '1.8 MB' },
-    { id: 'REP-2026-01-31', date: '2026-01-31', title: '1월 월간 보안/안전 종합 점검 보고서', type: '종합 보고서', author: '시스템', size: '5.2 MB' },
-    { id: 'REP-2026-01-24', date: '2026-01-24', title: '1월 4주차 단지서버 보안 취약점 정기 점검 보고서', type: '취약점 점검', author: '장정구', size: '2.3 MB' },
-    { id: 'REP-2026-01-17', date: '2026-01-17', title: '1월 3주차 홈네트워크 안전점검표', type: '안전 점검', author: '박신일', size: '1.7 MB' },
-  ];
+  const reports = complexId ? (reportData[complexId] || []) : [];
+
+  const handleStatusChange = (reportId, newStatus) => {
+    if (!isAdmin || !complexId) return;
+    const updated = reports.map(r => r.id === reportId ? { ...r, status: newStatus } : r);
+    onDataChange(complexId, updated);
+    setStatusDropdownId(null);
+  };
 
   const filteredReports = reports.filter(report => {
     const matchSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -4129,85 +5171,375 @@ const ReportDashboard = () => {
     }
   };
 
+  // --- 랜딩 모드 (단지 미선택) ---
+  if (!complexId) {
+    const filtered = landingSearch.trim()
+      ? complexList.filter(c =>
+          c.name.toLowerCase().includes(landingSearch.toLowerCase()) ||
+          c.region.toLowerCase().includes(landingSearch.toLowerCase())
+        )
+      : complexList;
+
+    const toggleCheck = (id, e) => {
+      e.stopPropagation();
+      setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+    const allChecked = filtered.length > 0 && filtered.every(c => checkedIds.includes(c.id));
+    const toggleAll = () => {
+      if (allChecked) setCheckedIds(prev => prev.filter(id => !filtered.find(c => c.id === id)));
+      else setCheckedIds(prev => [...new Set([...prev, ...filtered.map(c => c.id)])]);
+    };
+
+    return (
+      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+        <div className="rounded-3xl p-8 shadow-sm border border-slate-300/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ backgroundColor: '#E2E8F0' }}>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><FileText className="w-6 h-6" /></div>
+            <div>
+              <h2 className="text-lg font-black text-slate-800">통합 보고서 센터 — 단지 선택</h2>
+              <p className="text-xs text-slate-400 mt-0.5">보고서를 확인할 단지를 선택하세요</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <input
+                type="text"
+                value={landingSearch}
+                onChange={(e) => setLandingSearch(e.target.value)}
+                placeholder="단지명 또는 지역 검색..."
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all placeholder:text-slate-400"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            </div>
+            <div className="flex bg-slate-100 rounded-xl p-1 gap-0.5">
+              <button onClick={() => setLandingView('grid')} className={`p-2 rounded-lg transition-all ${landingView === 'grid' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}><Grid3X3 className="w-4 h-4" /></button>
+              <button onClick={() => setLandingView('list')} className={`p-2 rounded-lg transition-all ${landingView === 'list' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}><ListFilter className="w-4 h-4" /></button>
+            </div>
+            <button
+              onClick={() => alert(checkedIds.length > 0 ? `선택된 ${checkedIds.length}개 단지 보고서 일괄 다운로드 (데모)` : '전체 단지 보고서 일괄 다운로드 (데모)')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 whitespace-nowrap ${checkedIds.length > 0 ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-slate-900 text-white hover:bg-black'}`}
+            >
+              <Download className="w-4 h-4" /> 일괄 다운로드{checkedIds.length > 0 && ` (${checkedIds.length})`}
+            </button>
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 text-slate-400 font-medium bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+            <p className="text-sm">검색 결과가 없습니다</p>
+          </div>
+        ) : landingView === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+            {filtered.map(c => {
+              const data = reportData[c.id] || [];
+              const typeCount = {};
+              data.forEach(r => { typeCount[r.type] = (typeCount[r.type] || 0) + 1; });
+              const isChecked = checkedIds.includes(c.id);
+              const statusColor = c.status === '정상' ? 'emerald' : c.status === '점검중' ? 'amber' : 'rose';
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => onSelectComplex(c.id)}
+                  className={`bg-white rounded-3xl border shadow-sm p-6 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all group ${isChecked ? 'border-purple-300 ring-2 ring-purple-100' : 'border-slate-200/60 hover:border-purple-200'}`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => toggleCheck(c.id, e)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer mt-0.5 shrink-0"
+                      />
+                      <div>
+                        <h3 className="text-sm font-black text-slate-800 group-hover:text-purple-600 transition-colors">{c.name}</h3>
+                        <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" />{c.region}</p>
+                      </div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold bg-${statusColor}-50 text-${statusColor}-600 border border-${statusColor}-100`}>{c.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-purple-500" />
+                      <span className="text-sm font-black text-slate-800">{data.length}</span>
+                      <span className="text-[10px] font-bold text-slate-400">건</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {Object.entries(typeCount).slice(0, 4).map(([type, cnt]) => (
+                        <span key={type} className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">{type.replace(' 점검', '').replace(' 보고서', '')} {cnt}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/50 border-b border-slate-100">
+                <tr>
+                  <th className="px-6 py-4 w-12 text-center">
+                    <input type="checkbox" checked={allChecked} onChange={toggleAll} className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+                  </th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">단지명</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">지역</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상태</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">보고서 수</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">최근 보고서</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상세</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map(c => {
+                  const data = reportData[c.id] || [];
+                  const latest = data[0];
+                  const isChecked = checkedIds.includes(c.id);
+                  return (
+                    <tr key={c.id} className={`transition-colors cursor-pointer ${isChecked ? 'bg-purple-50/50' : 'hover:bg-slate-50/70'}`} onClick={() => onSelectComplex(c.id)}>
+                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={isChecked} onChange={(e) => toggleCheck(c.id, e)} className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm font-bold text-slate-800 hover:text-purple-600 transition-colors">{c.name}</span>
+                      </td>
+                      <td className="px-4 py-4 text-xs text-slate-500">{c.region}</td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${c.status === '정상' ? 'bg-emerald-50 text-emerald-600' : c.status === '점검중' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>{c.status}</span>
+                      </td>
+                      <td className="px-4 py-4 text-center text-sm font-black text-sky-600">{data.length}건</td>
+                      <td className="px-4 py-4 text-xs text-slate-500 truncate max-w-[200px]">{latest ? `${latest.date} — ${latest.title}` : '-'}</td>
+                      <td className="px-6 py-4 text-center">
+                        <button onClick={() => onSelectComplex(c.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-all"><ChevronRight className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- 상세 모드 (단지 선택됨) ---
+  const currentComplex = complexList.find(c => c.id === complexId);
+  const totalReports = reports.length;
+  const typeCounts = {};
+  reports.forEach(r => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1; });
+
   return (
-    <div className="flex flex-col gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+    <div className="flex flex-col gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-500" onClick={() => statusDropdownId && setStatusDropdownId(null)}>
+
+      {/* 보고서 미리보기 모달 */}
+      {previewReport && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setPreviewReport(null)} />
+          <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+            {/* 모달 헤더 */}
+            <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start shrink-0">
+              <div className="flex-1 mr-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">{previewReport.type}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                    previewReport.status === '완료' ? 'text-emerald-600 bg-emerald-50' :
+                    previewReport.status === '점검중' ? 'text-amber-600 bg-amber-50' :
+                    'text-slate-500 bg-slate-50'
+                  }`}>{previewReport.status || '완료'}</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">{previewReport.title}</h3>
+              </div>
+              <button onClick={() => setPreviewReport(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors shrink-0"><X size={20} /></button>
+            </div>
+
+            {/* 문서 정보 */}
+            <div className="px-8 py-4 border-b border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">문서 번호</p>
+                <p className="text-sm font-mono font-bold text-slate-700">{previewReport.id}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">등록 일자</p>
+                <p className="text-sm font-bold text-slate-700">{previewReport.date}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">작성자</p>
+                <p className="text-sm font-bold text-slate-700">{previewReport.author}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">파일 용량</p>
+                <p className="text-sm font-bold text-slate-700">{previewReport.size}</p>
+              </div>
+            </div>
+
+            {/* 미리보기 본문 */}
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-8">
+                {/* 문서 헤더 영역 */}
+                <div className="text-center mb-8 pb-6 border-b border-slate-200">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">AXGATE SAFERHOME</p>
+                  <h4 className="text-xl font-black text-slate-800 mb-1">{previewReport.title}</h4>
+                  <p className="text-xs text-slate-500">{currentComplex?.name} · {currentComplex?.region}</p>
+                </div>
+
+                {/* 점검 개요 */}
+                <div className="mb-6">
+                  <h5 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-slate-400 rounded-full"></div>
+                    점검 개요
+                  </h5>
+                  <table className="w-full text-sm border-collapse">
+                    <tbody>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-2.5 text-xs font-bold text-slate-500 w-28">점검 유형</td>
+                        <td className="py-2.5 text-xs text-slate-700">{previewReport.type}</td>
+                        <td className="py-2.5 text-xs font-bold text-slate-500 w-28">점검 일자</td>
+                        <td className="py-2.5 text-xs text-slate-700">{previewReport.date}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-2.5 text-xs font-bold text-slate-500">점검 대상</td>
+                        <td className="py-2.5 text-xs text-slate-700">{currentComplex?.name}</td>
+                        <td className="py-2.5 text-xs font-bold text-slate-500">담당자</td>
+                        <td className="py-2.5 text-xs text-slate-700">{previewReport.author}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2.5 text-xs font-bold text-slate-500">점검 결과</td>
+                        <td colSpan={3} className="py-2.5 text-xs text-slate-700">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            previewReport.status === '완료' ? 'bg-emerald-50 text-emerald-600' :
+                            previewReport.status === '점검중' ? 'bg-amber-50 text-amber-600' :
+                            'bg-slate-100 text-slate-500'
+                          }`}>{previewReport.status || '완료'}</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 세부 내용 */}
+                <div className="mb-6">
+                  <h5 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-slate-400 rounded-full"></div>
+                    세부 점검 내용
+                  </h5>
+                  <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+                    <p>본 보고서는 {currentComplex?.name}에 대한 {previewReport.type} 결과를 기록한 문서입니다.</p>
+                    <p>점검 항목 전반에 걸쳐 홈네트워크 시스템의 보안 상태를 평가하였으며, 취약 사항에 대한 조치 방안을 포함하고 있습니다.</p>
+                    <p>세부 점검 결과 및 조치 이력은 별첨 자료를 참고하시기 바랍니다.</p>
+                  </div>
+                </div>
+
+                {/* 비고 */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">비고</p>
+                  <p className="text-xs text-slate-500">본 문서는 데모용 미리보기입니다. 실제 환경에서는 전체 보고서 내용이 표시됩니다.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 모달 하단 */}
+            <div className="px-8 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
+              <button onClick={() => setPreviewReport(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors">닫기</button>
+              <button onClick={() => { alert(`${previewReport.title} PDF 다운로드가 시작됩니다.`); }} className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all flex items-center gap-1.5">
+                <Download className="w-3.5 h-3.5" /> PDF 다운로드
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 뒤로가기 바 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-3">
+        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-purple-600 hover:bg-purple-50 transition-all">
+          <ArrowLeft className="w-4 h-4" /> 단지 목록으로
+        </button>
+        <div className="h-5 w-px bg-slate-200" />
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-purple-500" />
+          <span className="text-sm font-bold text-slate-800">{currentComplex?.name}</span>
+          <span className="text-xs text-slate-400">{currentComplex?.region}</span>
+        </div>
+      </div>
+
       {/* 통계 요약 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6">
-        <div 
+        <div
           onClick={() => setFilterType('전체')}
           className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '전체' ? 'border-slate-400 ring-2 ring-slate-100 shadow-md transform scale-[1.02]' : 'border-slate-100 shadow-sm hover:border-slate-300 hover:shadow-md'}`}
         >
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">총 누적 보고서</p>
-            <p className="text-3xl font-black text-slate-800 mt-1">57<span className="text-sm font-medium text-slate-500 ml-1">건</span></p>
+            <p className="text-3xl font-black text-slate-800 mt-1">{totalReports}<span className="text-sm font-medium text-slate-500 ml-1">건</span></p>
           </div>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '전체' ? 'bg-slate-200 text-slate-700' : 'bg-slate-50 text-slate-500'}`}><FileText /></div>
         </div>
-        
-        <div 
+
+        <div
           onClick={() => setFilterType('취약점 점검')}
           className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '취약점 점검' ? 'border-indigo-500 ring-2 ring-indigo-100 shadow-md transform scale-[1.02]' : 'border-indigo-100 shadow-sm hover:border-indigo-300 hover:shadow-md'}`}
         >
           <div>
             <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">취약점 점검</p>
-            <p className="text-3xl font-black text-indigo-600 mt-1">12<span className="text-sm font-medium text-indigo-600/60 ml-1">건</span></p>
+            <p className="text-3xl font-black text-indigo-600 mt-1">{typeCounts['취약점 점검'] || 0}<span className="text-sm font-medium text-indigo-600/60 ml-1">건</span></p>
           </div>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '취약점 점검' ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-50 text-indigo-600'}`}><AlertTriangle /></div>
         </div>
-        
-        <div 
+
+        <div
           onClick={() => setFilterType('안전 점검')}
           className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '안전 점검' ? 'border-emerald-500 ring-2 ring-emerald-100 shadow-md transform scale-[1.02]' : 'border-emerald-100 shadow-sm hover:border-emerald-300 hover:shadow-md'}`}
         >
           <div>
             <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">안전 점검</p>
-            <p className="text-3xl font-black text-emerald-600 mt-1">24<span className="text-sm font-medium text-emerald-600/60 ml-1">건</span></p>
+            <p className="text-3xl font-black text-emerald-600 mt-1">{typeCounts['안전 점검'] || 0}<span className="text-sm font-medium text-emerald-600/60 ml-1">건</span></p>
           </div>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '안전 점검' ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-50 text-emerald-600'}`}><ShieldCheck /></div>
         </div>
 
-        <div 
+        <div
           onClick={() => setFilterType('단지 보고서')}
           className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '단지 보고서' ? 'border-purple-500 ring-2 ring-purple-100 shadow-md transform scale-[1.02]' : 'border-purple-100 shadow-sm hover:border-purple-300 hover:shadow-md'}`}
         >
           <div>
             <p className="text-xs font-bold text-purple-600 uppercase tracking-wider">단지 보고서</p>
-            <p className="text-3xl font-black text-purple-600 mt-1">15<span className="text-sm font-medium text-purple-600/60 ml-1">건</span></p>
+            <p className="text-3xl font-black text-purple-600 mt-1">{typeCounts['단지 보고서'] || 0}<span className="text-sm font-medium text-purple-600/60 ml-1">건</span></p>
           </div>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '단지 보고서' ? 'bg-purple-100 text-purple-700' : 'bg-purple-50 text-purple-600'}`}><Building2 /></div>
         </div>
-        
-        <div 
+
+        <div
           onClick={() => setFilterType('종합 보고서')}
           className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '종합 보고서' ? 'border-orange-500 ring-2 ring-orange-100 shadow-md transform scale-[1.02]' : 'border-orange-100 shadow-sm hover:border-orange-300 hover:shadow-md'}`}
         >
           <div>
             <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">종합 점검</p>
-            <p className="text-3xl font-black text-orange-600 mt-1">6<span className="text-sm font-medium text-orange-600/60 ml-1">건</span></p>
+            <p className="text-3xl font-black text-orange-600 mt-1">{typeCounts['종합 보고서'] || 0}<span className="text-sm font-medium text-orange-600/60 ml-1">건</span></p>
           </div>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '종합 보고서' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-600'}`}><Layers /></div>
         </div>
       </div>
 
       {/* 보고서 목록 */}
-      <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 flex flex-col overflow-hidden">
-        <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 flex flex-col">
+        <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 rounded-t-[2.5rem] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
             <FileDown className="w-6 h-6 text-indigo-600" /> 종합 점검 보고서 이력
           </h3>
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="보고서 제목 또는 작성자 검색" 
+                placeholder="보고서 제목 또는 작성자 검색"
                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
               />
               <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
             </div>
             <div className="relative shrink-0">
-              <select 
+              <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
                 className="appearance-none w-[130px] px-4 py-2.5 pl-10 pr-8 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
@@ -4221,10 +5553,10 @@ const ReportDashboard = () => {
               <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
             </div>
-            <button 
+            <button
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 whitespace-nowrap ${
-                selectedIds.length > 0 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/20' 
+                selectedIds.length > 0
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/20'
                 : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }`}
               disabled={selectedIds.length === 0}
@@ -4233,7 +5565,7 @@ const ReportDashboard = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="p-8">
           <div className="space-y-8">
             {Object.keys(groupedReports).length === 0 ? (
@@ -4243,25 +5575,25 @@ const ReportDashboard = () => {
             ) : (
               Object.entries(groupedReports).map(([category, items], catIdx) => {
                 const isAllSelected = items.length > 0 && items.every(item => selectedIds.includes(item.id));
-                
+
                 return (
                   <div key={catIdx} className="bg-slate-50 rounded-3xl p-6 border border-slate-200/60">
                     <h4 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
                       <div className={`w-1.5 h-4 rounded-full ${
-                        category === '취약점 점검' ? 'bg-indigo-500' : 
-                        category === '안전 점검' ? 'bg-emerald-500' : 
+                        category === '취약점 점검' ? 'bg-indigo-500' :
+                        category === '안전 점검' ? 'bg-emerald-500' :
                         category === '단지 보고서' ? 'bg-purple-500' : 'bg-orange-500'
-                      }`}></div> 
+                      }`}></div>
                       {category}
                       <span className="text-xs font-bold text-slate-400 ml-1">({items.length}건)</span>
                     </h4>
-                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-visible">
                       <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-50/50 border-b border-slate-100">
                           <tr>
                             <th className="px-6 py-4 w-12 text-center">
-                              <input 
-                                type="checkbox" 
+                              <input
+                                type="checkbox"
                                 checked={isAllSelected}
                                 onChange={() => handleSelectAll(items)}
                                 className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
@@ -4272,6 +5604,7 @@ const ReportDashboard = () => {
                             <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">보고서 제목</th>
                             <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-24">작성자</th>
                             <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-24">용량</th>
+                            <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-28 text-center">상태</th>
                             <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-32 text-center">다운로드</th>
                           </tr>
                         </thead>
@@ -4279,8 +5612,8 @@ const ReportDashboard = () => {
                           {items.map((report, idx) => (
                             <tr key={idx} className={`transition-colors group ${selectedIds.includes(report.id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50/70'}`}>
                               <td className="px-6 py-5 text-center">
-                                <input 
-                                  type="checkbox" 
+                                <input
+                                  type="checkbox"
                                   checked={selectedIds.includes(report.id)}
                                   onChange={() => handleSelect(report.id)}
                                   className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
@@ -4288,7 +5621,7 @@ const ReportDashboard = () => {
                               </td>
                               <td className="px-4 py-5 text-xs font-mono font-bold text-slate-500">{report.id}</td>
                               <td className="px-4 py-5 text-xs font-bold text-slate-600">{report.date}</td>
-                              <td className="px-4 py-5 text-sm font-bold text-slate-800 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => handleSelect(report.id)}>
+                              <td className="px-4 py-5 text-sm font-bold text-slate-800 cursor-pointer hover:text-indigo-600 transition-colors" onClick={(e) => { e.stopPropagation(); setPreviewReport(report); }}>
                                 <div className="flex items-center gap-3">
                                   <FileText className={`w-4 h-4 transition-colors ${selectedIds.includes(report.id) ? 'text-indigo-500' : 'text-slate-400 group-hover:text-indigo-500'}`} />
                                   {report.title}
@@ -4296,6 +5629,48 @@ const ReportDashboard = () => {
                               </td>
                               <td className="px-4 py-5 text-xs font-bold text-slate-600">{report.author}</td>
                               <td className="px-4 py-5 text-xs font-mono font-medium text-slate-500">{report.size}</td>
+                              <td className="px-4 py-5 text-center relative">
+                                {isAdmin ? (
+                                  <div className="relative inline-block">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setStatusDropdownId(statusDropdownId === report.id ? null : report.id); }}
+                                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all border ${
+                                        report.status === '완료' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' :
+                                        report.status === '점검중' ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100' :
+                                        'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      {report.status || '완료'} <ChevronDown className="w-3 h-3 inline-block ml-0.5 -mt-px" />
+                                    </button>
+                                    {statusDropdownId === report.id && (
+                                      <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[100px]">
+                                        {['완료', '점검중', '대기'].map(s => (
+                                          <button
+                                            key={s}
+                                            onClick={(e) => { e.stopPropagation(); handleStatusChange(report.id, s); }}
+                                            className={`w-full px-3 py-2 text-left text-xs font-bold transition-colors flex items-center gap-2 ${
+                                              report.status === s ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                          >
+                                            <span className={`w-1.5 h-1.5 rounded-full ${
+                                              s === '완료' ? 'bg-emerald-500' : s === '점검중' ? 'bg-amber-500' : 'bg-slate-400'
+                                            }`} />
+                                            {s}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                                    report.status === '완료' ? 'bg-emerald-50 text-emerald-600' :
+                                    report.status === '점검중' ? 'bg-amber-50 text-amber-600' :
+                                    'bg-slate-50 text-slate-500'
+                                  }`}>
+                                    {report.status || '완료'}
+                                  </span>
+                                )}
+                              </td>
                               <td className="px-6 py-5 text-center">
                                 <button onClick={() => alert(`${report.title} PDF 다운로드가 시작됩니다.`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all shadow-sm">
                                   <Download className="w-3.5 h-3.5" /> PDF
@@ -4492,7 +5867,7 @@ const AccountManagementDashboard = ({ onLog }) => {
                 <tr>
                   <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-40">이름 / ID</th>
                   <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-48 text-center">권한 그룹 (Role)</th>
-                  <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-center w-24">상태</th>
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-center w-28">상태</th>
                   <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">접근 허용 단지 범위</th>
                   <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-40 text-center">최근 접속일시</th>
                   <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-24 text-center">관리</th>
@@ -4513,8 +5888,8 @@ const AccountManagementDashboard = ({ onLog }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black ${account.status === '활성' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                        {account.status === '활성' && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>}
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border whitespace-nowrap ${account.status === '활성' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                        {account.status === '활성' && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shrink-0"></div>}
                         {account.status}
                       </span>
                     </td>
@@ -4549,12 +5924,13 @@ const AccountManagementDashboard = ({ onLog }) => {
 };
 
 // --- [로그인 컴포넌트] ---
-const LoginPage = ({ onLogin }) => {
+const LoginPage = ({ onLogin, onLoginWithRole }) => {
   const [loginRole, setLoginRole] = useState('admin');
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [saveId, setSaveId] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -4563,12 +5939,12 @@ const LoginPage = ({ onLogin }) => {
     // 가상의 로그인 처리 지연 효과
     setTimeout(() => {
       setIsLoading(false);
-      onLogin();
+      onLoginWithRole(loginRole);
     }, 800);
   };
 
   return (
-    <div className="min-h-screen w-full relative flex items-center" style={{
+    <div className="min-h-screen w-full relative flex flex-col lg:flex-row items-center lg:items-center" style={{
       fontFamily: "'Inter', sans-serif",
       backgroundImage: "url('/login-bg.png')",
       backgroundSize: 'cover',
@@ -4577,31 +5953,122 @@ const LoginPage = ({ onLogin }) => {
     }}>
 
       {/* ── 상단 네비 (배경 위 오버레이) ── */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-end gap-8 px-12 py-7" style={{ zIndex: 10 }}>
-        {['ABOUT','DOWNLOAD','PRICING','CONTACT'].map(item => (
-          <span key={item} className="text-[13px] font-semibold tracking-wider cursor-pointer hover:opacity-100 transition-opacity" style={{ color: 'rgba(255,255,255,0.75)' }}>{item}</span>
-        ))}
-        <button className="px-6 py-2 rounded-full text-[13px] font-bold tracking-wider" style={{ color: 'white', border: '2px solid rgba(255,255,255,0.85)' }}>
-          SIGN IN
-        </button>
-        <div className="flex flex-col gap-[5px] cursor-pointer ml-1">
-          {[0,1,2].map(i => <div key={i} style={{ width: 22, height: 2, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 2 }} />)}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-end gap-4 sm:gap-8 px-4 sm:px-12 py-5 sm:py-7" style={{ zIndex: 10 }}>
+        <div className="hidden md:flex items-center gap-8">
+          {['ABOUT','COMPANY','DOWNLOAD','CONTACT'].map(item => (
+            item === 'COMPANY' ? (
+              <a key={item} href="https://www.axgate.com/main/company/about.php" target="_blank" rel="noopener noreferrer" className="text-[13px] font-semibold tracking-wider cursor-pointer hover:opacity-100 transition-opacity" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>{item}</a>
+            ) : (
+              <span key={item} className="text-[13px] font-semibold tracking-wider cursor-pointer hover:opacity-100 transition-opacity" style={{ color: 'rgba(255,255,255,0.75)' }}>{item}</span>
+            )
+          ))}
+          <button className="px-6 py-2 rounded-full text-[13px] font-bold tracking-wider" style={{ color: 'white', border: '2px solid rgba(255,255,255,0.85)' }}>
+            SIGN IN
+          </button>
         </div>
+        <button onClick={() => setMobileMenuOpen(prev => !prev)} className="flex flex-col gap-[5px] cursor-pointer ml-1 relative z-50">
+          {[0,1,2].map(i => <div key={i} style={{ width: 22, height: 2, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 2, transition: 'all 0.2s' }} />)}
+        </button>
       </div>
 
-      {/* ── 로그인 카드 (좌측 floating) ── */}
-      <div className="ml-14 my-10 flex flex-col" style={{
+      {/* ── 모바일/햄버거 메뉴 패널 (화이트 테마) ── */}
+      {mobileMenuOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/30 z-30" onClick={() => setMobileMenuOpen(false)} />
+          <div className="fixed top-0 right-0 w-72 h-full z-40 flex flex-col animate-in slide-in-from-right duration-300 shadow-2xl" style={{ backgroundColor: '#FFFFFF' }}>
+            {/* 헤더 */}
+            <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid #E2E8F0' }}>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ backgroundColor: '#1B3A6B' }}>
+                  <Shield size={14} className="text-white" />
+                </div>
+                <div>
+                  <div className="font-black text-[14px] leading-none" style={{ color: '#1B3A6B' }}>AX<span style={{ color: '#f97316' }}>GATE</span></div>
+                  <div className="text-[9px] font-bold tracking-widest uppercase leading-none mt-0.5" style={{ color: '#94A3B8' }}>SaferHome</div>
+                </div>
+              </div>
+              <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 rounded-lg transition-colors" style={{ color: '#94A3B8' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#0F172A'; e.currentTarget.style.backgroundColor = '#F1F5F9'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#94A3B8'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* 메뉴 항목 */}
+            <div className="flex-1 overflow-y-auto px-4 py-6">
+              <p className="text-[10px] font-bold px-3 mb-3 tracking-widest uppercase" style={{ color: '#94A3B8' }}>MENU</p>
+              <nav className="space-y-1 mb-8">
+                {[
+                  { label: 'ABOUT', icon: Info, desc: '서비스 소개' },
+                  { label: 'COMPANY', icon: Building2, desc: '회사 소개', url: 'https://www.axgate.com/main/company/about.php' },
+                  { label: 'DOWNLOAD', icon: Download, desc: '자료 다운로드' },
+                  { label: 'CONTACT', icon: Mail, desc: '문의하기' },
+                ].map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <a key={item.label} href={item.url || '#'} target={item.url ? '_blank' : undefined} rel={item.url ? 'noopener noreferrer' : undefined} onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl transition-all"
+                      style={{ color: '#334155', textDecoration: 'none' }}
+                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F1F5F9'; e.currentTarget.style.color = '#1B3A6B'; }}
+                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                    >
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: '#F1F5F9' }}>
+                        <Icon size={16} style={{ color: '#64748B' }} />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold">{item.label}</p>
+                        <p className="text-[10px]" style={{ color: '#94A3B8' }}>{item.desc}</p>
+                      </div>
+                    </a>
+                  );
+                })}
+              </nav>
+
+              <p className="text-[10px] font-bold px-3 mb-3 tracking-widest uppercase" style={{ color: '#94A3B8' }}>PARTNER SITES</p>
+              <nav className="space-y-1">
+                {[
+                  { name: 'AXGATE', desc: '엑스게이트 공식', url: 'https://www.axgate.com' },
+                  { name: 'CVnet', desc: '홈네트워크 전문기업', url: 'https://cvnet.imweb.me/' },
+                  { name: '현대HT', desc: '현대홈넷', url: 'https://hyundaiht.co.kr' },
+                  { name: '삼성SDS', desc: '삼성SDS 홈IoT', url: 'https://www.samsungsds.com' },
+                  { name: '코맥스', desc: '스마트홈 솔루션', url: 'https://www.commax.com' },
+                  { name: '코콤', desc: '홈네트워크', url: 'https://www.kocom.co.kr' },
+                ].map((site, idx) => (
+                  <a key={idx} href={site.url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
+                    style={{ color: '#334155', textDecoration: 'none' }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F1F5F9'; e.currentTarget.style.color = '#1B3A6B'; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                  >
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: '#F1F5F9' }}>
+                      <Globe size={16} style={{ color: '#64748B' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold">{site.name}</p>
+                      <p className="text-[10px]" style={{ color: '#94A3B8' }}>{site.desc}</p>
+                    </div>
+                    <ArrowUpRight size={14} style={{ color: '#CBD5E1' }} className="shrink-0" />
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── 로그인 카드 ── */}
+      <div className="mx-auto lg:mx-0 lg:ml-14 my-20 sm:my-10 flex flex-col w-[90vw] sm:w-[400px]" style={{
         backgroundColor: '#ffffff',
-        width: '400px',
-        minWidth: '380px',
+        maxWidth: '420px',
         borderRadius: '28px',
-        padding: '44px 44px 36px',
+        padding: '36px 32px 28px',
         boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
         zIndex: 10,
         flexShrink: 0,
       }}>
         {/* 로고 */}
-        <div className="flex items-center gap-2.5 mb-8">
+        <div className="flex items-center gap-2.5 mb-6 sm:mb-8">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#1B3A6B' }}>
             <Shield size={18} className="text-white" />
           </div>
@@ -4614,24 +6081,24 @@ const LoginPage = ({ onLogin }) => {
         </div>
 
         {/* 아바타 */}
-        <div className="flex justify-center mb-8">
-          <div className="w-[100px] h-[100px] rounded-full flex items-center justify-center" style={{ backgroundColor: '#1B3A6B' }}>
-            <User size={44} className="text-white" />
+        <div className="flex justify-center mb-6 sm:mb-8">
+          <div className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] rounded-full flex items-center justify-center" style={{ backgroundColor: '#1B3A6B' }}>
+            <User size={40} className="text-white" />
           </div>
         </div>
 
         {/* 폼 */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {/* 아이디 */}
           <div className="flex items-center gap-3 px-4 py-3 rounded-full transition-all" style={{ border: '1.5px solid #CBD5E1' }}>
             <User size={15} style={{ color: '#94A3B8', flexShrink: 0 }} />
             <input
               type="text" required value={userId} onChange={e => setUserId(e.target.value)}
-              className="flex-1 outline-none text-[13px] bg-transparent font-semibold tracking-widest uppercase"
+              className="flex-1 outline-none text-[13px] bg-transparent font-semibold tracking-widest"
               style={{ color: '#1B3A6B' }}
               onFocus={e => { e.currentTarget.parentElement.style.borderColor = '#1B3A6B'; }}
               onBlur={e => { e.currentTarget.parentElement.style.borderColor = '#CBD5E1'; }}
-              placeholder="USERNAME"
+              placeholder="admin@axgate.com"
             />
           </div>
 
@@ -4679,13 +6146,13 @@ const LoginPage = ({ onLogin }) => {
         <div className="flex justify-between items-center mt-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={saveId} onChange={e => setSaveId(e.target.checked)} className="w-3.5 h-3.5 rounded" style={{ accentColor: '#1B3A6B' }} />
-            <span className="text-[11px]" style={{ color: '#94A3B8' }}>Remember me</span>
+            <span className="text-[11px]" style={{ color: '#94A3B8' }}>로그인 정보 저장</span>
           </label>
-          <a href="#" className="text-[11px] hover:opacity-70 transition-opacity" style={{ color: '#94A3B8' }}>Forget your password?</a>
+          <a href="#" className="text-[11px] hover:opacity-70 transition-opacity" style={{ color: '#94A3B8' }}>비밀번호를 잊으셨나요?</a>
         </div>
 
         {/* 하단 점 3개 */}
-        <div className="flex justify-center gap-2 mt-8">
+        <div className="flex justify-center gap-2 mt-6 sm:mt-8">
           {[0,1,2].map(i => (
             <div key={i} className="rounded-full" style={{ width: 9, height: 9, backgroundColor: '#CBD5E1' }} />
           ))}
@@ -4693,35 +6160,191 @@ const LoginPage = ({ onLogin }) => {
       </div>
 
       {/* ── 우측 Welcome 텍스트 ── */}
-      <div className="flex-1 flex flex-col justify-end pb-14 px-14" style={{ zIndex: 5 }}>
-        <h1 className="font-black leading-none mb-4" style={{ color: '#ffffff', fontSize: '88px', letterSpacing: '-4px', textShadow: '0 2px 24px rgba(0,0,0,0.1)' }}>
+      <div className="hidden lg:flex flex-1 flex-col justify-end pb-14 px-14" style={{ zIndex: 5 }}>
+        <h1 className="font-black leading-none mb-4" style={{ color: '#ffffff', fontSize: 'clamp(48px, 6vw, 88px)', letterSpacing: '-4px', textShadow: '0 2px 24px rgba(0,0,0,0.1)' }}>
           Welcome.
         </h1>
+        <p className="text-[15px] font-bold tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>
+          AXGATE SAFERHOME
+        </p>
         <p className="text-[13px] leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.7)', maxWidth: '300px' }}>
           홈네트워크 안전점검부터 취약점 분석까지<br />신뢰할 수 있는 통합 보안 관제 플랫폼입니다.
         </p>
-        <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.65)' }}>
+        <p className="text-[13px] mt-4" style={{ color: 'rgba(255,255,255,0.65)' }}>
           계정이 없으신가요?{' '}
           <a href="#" style={{ color: '#ffffff', fontWeight: 700 }}>지금 가입하기</a>
         </p>
       </div>
 
       {/* ── 우하단 별 아이콘 ── */}
-      <div className="absolute bottom-8 right-10" style={{ zIndex: 5, color: 'rgba(255,255,255,0.5)', fontSize: '28px', lineHeight: 1 }}>✦</div>
+      <div className="absolute bottom-8 right-10 hidden sm:block" style={{ zIndex: 5, color: 'rgba(255,255,255,0.5)', fontSize: '28px', lineHeight: 1 }}>✦</div>
     </div>
   );
 };
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeMenu, setActiveMenu] = useState('complex_list');
   const [selectedComplexId, setSelectedComplexId] = useState(null);
+  const [activeDetailTab, setActiveDetailTab] = useState('summary');
+  const [sidebarComplexSearch, setSidebarComplexSearch] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [terminalLogs, setTerminalLogs] = useState(['[SYSTEM] AXGATE 안전홈관리 시스템 가동 시작...', '[INFO] 보안 모듈 로드 완료.']);
 
-  // 전체 단지 목록 상태 관리
-  const [complexList, setComplexList] = useState(INITIAL_COMPLEX_LIST);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [partnerDropdownOpen, setPartnerDropdownOpen] = useState(false);
+  const partnerDropdownRef = useRef(null);
+  const [resetKey, setResetKey] = useState(0);
+
+  // 전체 단지 목록 상태 관리 (localStorage 영속화)
+  const [complexList, setComplexListRaw] = useState(() => {
+    try {
+      const saved = localStorage.getItem('xg_complex_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_COMPLEX_LIST;
+  });
+  const setComplexList = useCallback((val) => {
+    setComplexListRaw(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      try { localStorage.setItem('xg_complex_list', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  // 단지별 취약점/안전점검 데이터
+  const [vulnerabilityData, setVulnerabilityData] = useState(() =>
+    generateAllVulnerabilityData(INITIAL_COMPLEX_LIST)
+  );
+  const [safetyInspectionData, setSafetyInspectionData] = useState(() =>
+    generateAllSafetyInspectionData(INITIAL_COMPLEX_LIST)
+  );
+  const [selectedVulnComplexId, setSelectedVulnComplexId] = useState(null);
+  const [selectedSafetyComplexId, setSelectedSafetyComplexId] = useState(null);
+  const [reportData, setReportData] = useState(() =>
+    generateAllReportData(INITIAL_COMPLEX_LIST)
+  );
+  const [selectedReportComplexId, setSelectedReportComplexId] = useState(null);
+  const [complexMgmtData, setComplexMgmtData] = useState(() =>
+    generateAllComplexMgmtData(INITIAL_COMPLEX_LIST)
+  );
+  const [selectedComplexMgmtId, setSelectedComplexMgmtId] = useState(null);
+
+  // 단지 추가 시 데이터 자동 생성
+  useEffect(() => {
+    setVulnerabilityData(prev => {
+      const updated = { ...prev };
+      complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateVulnerabilityDataForComplex(c.id); });
+      return updated;
+    });
+    setSafetyInspectionData(prev => {
+      const updated = { ...prev };
+      complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateSafetyDataForComplex(c.id); });
+      return updated;
+    });
+    setReportData(prev => {
+      const updated = { ...prev };
+      complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateReportsForComplex(c.id, c.name); });
+      return updated;
+    });
+    setComplexMgmtData(prev => {
+      const updated = { ...prev };
+      complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateComplexMgmtDataForComplex(c.id); });
+      return updated;
+    });
+  }, [complexList]);
+
+  // 최근 확인 단지 이력 (최대 4개, { id, views: Set-like array } )
+  const [recentHistory, setRecentHistory] = useState([]);
+
+  // 이력 업데이트 헬퍼
+  const pushRecent = (cId, view) => {
+    if (!cId) return;
+    setRecentHistory(prev => {
+      const existing = prev.find(r => r.id === cId);
+      if (existing) {
+        const views = existing.views.includes(view) ? existing.views : [...existing.views, view];
+        return [{ id: cId, views }, ...prev.filter(r => r.id !== cId)].slice(0, 4);
+      }
+      return [{ id: cId, views: [view] }, ...prev].slice(0, 4);
+    });
+  };
+
+  useEffect(() => { if (selectedComplexId) pushRecent(selectedComplexId, 'complex_detail'); }, [selectedComplexId]);
+  useEffect(() => { if (selectedVulnComplexId) pushRecent(selectedVulnComplexId, 'vulnerability'); }, [selectedVulnComplexId]);
+  useEffect(() => { if (selectedSafetyComplexId) pushRecent(selectedSafetyComplexId, 'safety_inspection'); }, [selectedSafetyComplexId]);
+  useEffect(() => { if (selectedReportComplexId) pushRecent(selectedReportComplexId, 'report'); }, [selectedReportComplexId]);
+  useEffect(() => { if (selectedComplexMgmtId) pushRecent(selectedComplexMgmtId, 'complex_mgmt_report'); }, [selectedComplexMgmtId]);
+
+  // 로그아웃 — 모든 상태 초기화
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    setActiveMenu('complex_list');
+    setSelectedComplexId(null);
+    setActiveDetailTab('summary');
+    setSidebarComplexSearch('');
+    setSidebarOpen(false);
+    setTerminalLogs(['[SYSTEM] AXGATE 안전홈관리 시스템 가동 시작...', '[INFO] 보안 모듈 로드 완료.']);
+    try { localStorage.removeItem('xg_complex_list'); } catch {}
+    setComplexListRaw(INITIAL_COMPLEX_LIST);
+    setVulnerabilityData(generateAllVulnerabilityData(INITIAL_COMPLEX_LIST));
+    setSafetyInspectionData(generateAllSafetyInspectionData(INITIAL_COMPLEX_LIST));
+    setReportData(generateAllReportData(INITIAL_COMPLEX_LIST));
+    setComplexMgmtData(generateAllComplexMgmtData(INITIAL_COMPLEX_LIST));
+    setSelectedVulnComplexId(null);
+    setSelectedSafetyComplexId(null);
+    setSelectedReportComplexId(null);
+    setSelectedComplexMgmtId(null);
+    setRecentHistory([]);
+  };
+
+  // --- 브라우저 뒤로가기 히스토리 관리 ---
+  const navHistoryRef = useRef([{ menu: 'complex_list', complexId: null }]);
+  const isPopRef = useRef(false);
+
+  // 화면 전환 시 히스토리 push
+  useEffect(() => {
+    if (isPopRef.current) { isPopRef.current = false; return; }
+    const current = { menu: activeMenu, complexId: selectedComplexId };
+    const stack = navHistoryRef.current;
+    const last = stack[stack.length - 1];
+    if (last && last.menu === current.menu && last.complexId === current.complexId) return;
+    navHistoryRef.current = [...stack, current];
+    window.history.pushState(null, '', '');
+  }, [activeMenu, selectedComplexId]);
+
+  // popstate (뒤로가기) 핸들러
+  useEffect(() => {
+    const handlePop = () => {
+      const stack = navHistoryRef.current;
+      if (stack.length <= 1) {
+        // 더 이상 뒤로 갈 곳이 없으면 앱이 꺼지지 않도록 유지
+        window.history.pushState(null, '', '');
+        return;
+      }
+      stack.pop(); // 현재 화면 제거
+      const prev = stack[stack.length - 1];
+      isPopRef.current = true;
+      setActiveMenu(prev.menu);
+      setSelectedComplexId(prev.complexId);
+      if (!prev.complexId) {
+        setSelectedVulnComplexId(null);
+        setSelectedSafetyComplexId(null);
+        setSelectedReportComplexId(null);
+        setSelectedComplexMgmtId(null);
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    // 초기 히스토리 엔트리 추가
+    window.history.pushState(null, '', '');
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
 
   // 로그 업데이트 헬퍼
   const handleLogUpdate = (msg) => {
@@ -4731,6 +6354,8 @@ export default function App() {
   const handleSelectComplex = (id) => {
     setSelectedComplexId(id);
     setActiveMenu('complex_detail');
+    setActiveDetailTab('summary');
+    setSidebarComplexSearch('');
   };
 
   useEffect(() => {
@@ -4739,13 +6364,65 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (partnerDropdownRef.current && !partnerDropdownRef.current.contains(e.target)) {
+        setPartnerDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const detailTabs = [
+    { id: 'summary', label: '단지 요약', icon: LayoutDashboard },
+    { id: 'server', label: '단지서버', icon: Server },
+    { id: 'log_server', label: 'AXGATE SAFERHOME', icon: Archive },
+    { id: 'firewall', label: '방화벽', icon: Shield },
+    { id: 'network', label: '백본', icon: Network },
+    { id: 'separation', label: '단지관리', icon: Activity },
+    { id: 'separation_2', label: '단지관리 ADMIN', icon: Activity },
+    { id: 'logs', label: '로그', icon: ScrollText },
+  ];
+
+  const selectedComplexData = complexList.find(c => c.id === selectedComplexId);
+
   const getMenuTitle = () => {
     switch(activeMenu) {
       case 'complex_list': return '통합 단지 목록';
-      case 'complex_detail': return '단지 상세 인프라 관제';
-      case 'vulnerability': return '취약점 분석 및 조치';
-      case 'safety_inspection': return '홈네트워크 안전점검';
-      case 'report': return '점검 보고서';
+      case 'complex_detail': {
+        const tabLabel = detailTabs.find(t => t.id === activeDetailTab)?.label || '단지 요약';
+        const complexName = selectedComplexData?.name || '';
+        return `${complexName} — ${tabLabel}`;
+      }
+      case 'vulnerability': {
+        if (selectedVulnComplexId) {
+          const name = complexList.find(c => c.id === selectedVulnComplexId)?.name || '';
+          return `${name} — 취약점 분석 및 조치`;
+        }
+        return '취약점 분석 및 조치';
+      }
+      case 'safety_inspection': {
+        if (selectedSafetyComplexId) {
+          const name = complexList.find(c => c.id === selectedSafetyComplexId)?.name || '';
+          return `${name} — 홈네트워크 안전점검`;
+        }
+        return '홈네트워크 안전점검';
+      }
+      case 'report': {
+        if (selectedReportComplexId) {
+          const name = complexList.find(c => c.id === selectedReportComplexId)?.name || '';
+          return `${name} — 통합 보고서 센터`;
+        }
+        return '통합 보고서 센터';
+      }
+      case 'complex_mgmt_report': {
+        if (selectedComplexMgmtId) {
+          const name = complexList.find(c => c.id === selectedComplexMgmtId)?.name || '';
+          return `${name} — 단지관리 운영점검`;
+        }
+        return '단지관리 운영점검';
+      }
       case 'account_management': return '계정 및 권한 관리';
       default: return '보안 관제 시스템';
     }
@@ -4758,10 +6435,11 @@ export default function App() {
   const managementItems = [
     { id: 'vulnerability', icon: AlertTriangle, label: '취약점 분석 및 조치' },
     { id: 'safety_inspection', icon: ClipboardCheck, label: '홈네트워크 안전점검' },
+    { id: 'complex_mgmt_report', icon: Activity, label: '단지관리 운영점검' },
   ];
 
   const reportItems = [
-    { id: 'report', icon: FileText, label: '점검 보고서' },
+    { id: 'report', icon: FileText, label: '통합 보고서 센터' },
   ];
 
   const settingsItems = [
@@ -4774,7 +6452,17 @@ export default function App() {
     return (
       <button
         key={menu.id}
-        onClick={() => setActiveMenu(menu.id)}
+        onClick={() => {
+          const currentId = selectedComplexId;
+          setActiveMenu(menu.id);
+          if (menu.id === 'complex_list') {
+            setSelectedComplexId(null);
+          }
+          if (menu.id === 'vulnerability') setSelectedVulnComplexId(currentId || null);
+          if (menu.id === 'safety_inspection') setSelectedSafetyComplexId(currentId || null);
+          if (menu.id === 'report') setSelectedReportComplexId(currentId || null);
+          if (menu.id === 'complex_mgmt_report') setSelectedComplexMgmtId(currentId || null);
+        }}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150 outline-none text-left"
         style={{
           backgroundColor: isActive ? 'rgba(59,130,246,0.12)' : 'transparent',
@@ -4791,20 +6479,149 @@ export default function App() {
     );
   };
 
+  const VIEW_META = {
+    complex_detail: { label: '단지상세' },
+    vulnerability: { label: '취약점' },
+    safety_inspection: { label: '안전점검' },
+    report: { label: '보고서' },
+    complex_mgmt_report: { label: '단지관리' },
+  };
+
+  const filteredComplexes = sidebarComplexSearch.trim()
+    ? complexList.filter(c =>
+        c.name.toLowerCase().includes(sidebarComplexSearch.trim().toLowerCase()) ||
+        c.region.toLowerCase().includes(sidebarComplexSearch.trim().toLowerCase())
+      )
+    : [];
+
+  const renderDetailSubMenu = () => {
+    return (
+      <div className="mt-1">
+        {/* 단지 검색 — 항상 표시 */}
+        <div className="px-3 py-1.5 mb-1">
+          <div className="relative">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#64748B' }} />
+            <input
+              type="text"
+              placeholder="단지 검색..."
+              value={sidebarComplexSearch}
+              onChange={e => setSidebarComplexSearch(e.target.value)}
+              className="w-full pl-7 pr-7 py-1.5 rounded-md text-[12px] outline-none transition-colors"
+              style={{ backgroundColor: '#1E293B', border: '1px solid #334155', color: '#E2E8F0' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#3B82F6'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = '#334155'; }}
+            />
+            {sidebarComplexSearch && (
+              <button
+                onClick={() => setSidebarComplexSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded transition-colors"
+                style={{ color: '#64748B' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#E2E8F0'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; }}
+              >
+                <X size={11} />
+              </button>
+            )}
+          </div>
+          {/* 검색 결과 드롭다운 */}
+          {sidebarComplexSearch.trim() && (
+            <div className="mt-1 max-h-40 overflow-y-auto rounded-md custom-scrollbar-dark" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
+              {filteredComplexes.length > 0 ? filteredComplexes.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => handleSelectComplex(c.id)}
+                  className="w-full flex items-center justify-between px-3 py-2 text-left transition-colors"
+                  style={{ color: '#CBD5E1' }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(59,130,246,0.15)'; e.currentTarget.style.color = '#E2E8F0'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#CBD5E1'; }}
+                >
+                  <span className="text-[12px] font-medium truncate">{c.name}</span>
+                  <span className="text-[10px] ml-2 shrink-0" style={{ color: '#64748B' }}>{c.region}</span>
+                </button>
+              )) : (
+                <div className="px-3 py-2.5 text-[11px] text-center" style={{ color: '#64748B' }}>
+                  검색 결과가 없습니다
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 하위 탭 메뉴 — 단지 선택 시 항상 표시 */}
+        {selectedComplexId && (
+          <>
+            {/* 선택된 단지명 헤더 */}
+            <div className="flex items-center gap-2 px-3 py-2 mb-1">
+              <MapPin size={12} style={{ color: '#f97316', flexShrink: 0 }} />
+              <span className="text-[12px] font-bold truncate" style={{ color: '#E2E8F0' }}>
+                {selectedComplexData?.name || ''}
+              </span>
+              <button
+                onClick={() => {
+                  setActiveMenu('complex_list');
+                  setSelectedComplexId(null);
+                  setSelectedVulnComplexId(null);
+                  setSelectedSafetyComplexId(null);
+                  setSelectedReportComplexId(null);
+                  setSelectedComplexMgmtId(null);
+                }}
+                className="ml-auto p-1 rounded transition-colors"
+                style={{ color: '#64748B' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#E2E8F0'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+                title="목록으로 돌아가기"
+              >
+                <ArrowLeft size={13} />
+              </button>
+            </div>
+            {/* 하위 탭 메뉴 */}
+            {detailTabs.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeDetailTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveMenu('complex_detail');
+                    setActiveDetailTab(tab.id);
+                  }}
+                  className="w-full flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-md transition-all duration-150 outline-none text-left"
+                  style={{
+                    backgroundColor: isActive ? 'rgba(249,115,22,0.12)' : 'transparent',
+                    color: isActive ? '#fb923c' : '#94A3B8',
+                    borderLeft: isActive ? '3px solid #f97316' : '3px solid transparent',
+                    fontWeight: isActive ? 600 : 400,
+                  }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#E2E8F0'; } }}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = isActive ? 'rgba(249,115,22,0.12)' : 'transparent'; e.currentTarget.style.color = isActive ? '#fb923c' : '#94A3B8'; } }}
+                >
+                  <Icon size={14} strokeWidth={isActive ? 2 : 1.5} style={{ flexShrink: 0 }} />
+                  <span className="text-[12px] tracking-tight">{tab.label}</span>
+                </button>
+              );
+            })}
+          </>
+        )}
+      </div>
+    );
+  };
+
   // 비로그인 상태일 경우 로그인 화면 렌더링
   if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
+    return <LoginPage onLogin={() => setIsAuthenticated(true)} onLoginWithRole={(role) => { setIsAdmin(role === 'admin'); setIsAuthenticated(true); }} />;
   }
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 flex overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen h-screen bg-[#F1F5F9] text-slate-800 flex overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+      {/* 모바일 오버레이 */}
+      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />}
       {/* 사이드바 */}
-      <aside className="w-[256px] flex flex-col z-20 shrink-0 relative" style={{ backgroundColor: '#0F172A', borderRight: '1px solid #1E293B' }}>
+      <aside className={`w-[288px] flex flex-col z-40 shrink-0 fixed lg:static top-0 bottom-0 left-0 lg:h-screen transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`} style={{ backgroundColor: '#0F172A', borderRight: '1px solid #1E293B' }}>
         {/* 로고 */}
         <div className="h-16 flex items-center px-5 shrink-0" style={{ backgroundColor: '#020617', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div
             className="flex items-center gap-2.5 cursor-pointer select-none"
-            onClick={() => setActiveMenu('complex_list')}
+            onClick={() => { setActiveMenu('complex_list'); setSelectedComplexId(null); setSelectedVulnComplexId(null); setSelectedSafetyComplexId(null); setSelectedReportComplexId(null); setSelectedComplexMgmtId(null); setResetKey(k => k + 1); }}
           >
             <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #3B82F6, #6366F1)' }}>
               <Shield size={14} className="text-white" />
@@ -4818,18 +6635,84 @@ export default function App() {
 
         <div className="flex-1 overflow-y-auto py-5 px-3 custom-scrollbar-dark">
           {[
-            { label: 'DASHBOARDS', items: menuItems },
+            { label: 'DASHBOARDS', items: menuItems, hasSubMenu: true },
             { label: 'MANAGEMENT', items: managementItems },
             { label: 'REPORT', items: reportItems },
             { label: 'SETTINGS', items: settingsItems },
-          ].map(({ label, items }) => (
+          ].map(({ label, items, hasSubMenu }) => (
             <div key={label} className="mb-6">
               <p className="text-[10px] font-bold px-3 mb-2 tracking-widest uppercase" style={{ color: '#64748B' }}>{label}</p>
               <nav className="space-y-0.5">
                 {items.map(renderMenuItem)}
+                {hasSubMenu && renderDetailSubMenu()}
               </nav>
             </div>
           ))}
+          {/* 최근 확인 단지 */}
+          {recentHistory.length > 0 && (
+            <div className="mb-6">
+              <p className="text-[10px] font-bold px-3 mb-2 tracking-widest uppercase" style={{ color: '#64748B' }}>RECENT</p>
+              <nav>
+                {recentHistory.map(({ id: cId, views }) => {
+                  const c = complexList.find(x => x.id === cId);
+                  if (!c) return null;
+                  return (
+                    <div key={cId} className="px-3 py-1.5 rounded-md group/recent" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f97316' }} />
+                        <button
+                          onClick={() => { setSelectedComplexId(cId); setActiveMenu('complex_detail'); setActiveDetailTab('summary'); }}
+                          className="text-[12px] font-medium truncate text-left hover:underline transition-all"
+                          style={{ color: '#CBD5E1' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#f97316'; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#CBD5E1'; }}
+                        >{c.name}</button>
+                        <button
+                          onClick={() => {
+                            setRecentHistory(prev => prev.filter(r => r.id !== cId));
+                            if (selectedComplexId === cId) { setSelectedComplexId(null); setActiveMenu('complex_list'); }
+                            if (selectedVulnComplexId === cId) setSelectedVulnComplexId(null);
+                            if (selectedSafetyComplexId === cId) setSelectedSafetyComplexId(null);
+                            if (selectedReportComplexId === cId) setSelectedReportComplexId(null);
+                            if (selectedComplexMgmtId === cId) setSelectedComplexMgmtId(null);
+                          }}
+                          className="ml-auto p-0.5 rounded opacity-0 group-hover/recent:opacity-100 transition-all shrink-0"
+                          style={{ color: '#475569' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#475569'; }}
+                          title="이력 삭제"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1 pl-3.5">
+                        {views.map(v => {
+                          const m = VIEW_META[v];
+                          if (!m) return null;
+                          return (
+                            <button
+                              key={v}
+                              onClick={() => {
+                                if (v === 'complex_detail') { setSelectedComplexId(cId); setActiveMenu('complex_detail'); }
+                                else if (v === 'vulnerability') { setSelectedVulnComplexId(cId); setActiveMenu('vulnerability'); }
+                                else if (v === 'safety_inspection') { setSelectedSafetyComplexId(cId); setActiveMenu('safety_inspection'); }
+                                else if (v === 'report') { setSelectedReportComplexId(cId); setActiveMenu('report'); }
+                                else if (v === 'complex_mgmt_report') { setSelectedComplexMgmtId(cId); setActiveMenu('complex_mgmt_report'); }
+                              }}
+                              className="px-2 py-0.5 rounded text-[9px] font-bold transition-all hover:opacity-80"
+                              style={{ backgroundColor: '#334155', color: '#94A3B8' }}
+                            >
+                              {m.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </nav>
+            </div>
+          )}
         </div>
 
         {/* 사용자 정보 */}
@@ -4845,7 +6728,7 @@ export default function App() {
               </div>
             </div>
             <button
-              onClick={() => setIsAuthenticated(false)}
+              onClick={handleLogout}
               className="p-1.5 rounded-md transition-all"
               style={{ color: '#475569' }}
               onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#334155'; e.currentTarget.style.color = '#94A3B8'; }}
@@ -4860,23 +6743,110 @@ export default function App() {
 
       {/* 메인 콘텐츠 */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="h-16 flex items-center justify-between px-8 shrink-0 z-10 sticky top-0" style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0' }}>
-          <h2 className="text-[18px] font-bold tracking-tight flex items-center gap-2.5" style={{ color: '#0F172A' }}>
-            {getMenuTitle()}
+        <header className="h-16 flex items-center justify-between px-4 sm:px-8 shrink-0 z-[70] sticky top-0" style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0' }}>
+          <div className="flex items-center gap-3">
+            <button className="lg:hidden p-2 rounded-md hover:bg-gray-100" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h2 className="text-[16px] sm:text-[18px] font-bold tracking-tight flex items-center gap-2.5" style={{ color: '#0F172A' }}>
+              {getMenuTitle()}
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
           </h2>
-          <div className="flex items-center text-[13px] font-mono px-3.5 py-2 rounded-md" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', color: '#475569' }}>
-            <Clock className="w-3.5 h-3.5 mr-2" style={{ color: '#3B82F6' }} />
-            {currentTime.toLocaleTimeString('ko-KR')}
+          </div>
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="flex items-center text-[13px] font-mono px-3.5 py-2 rounded-md" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', color: '#475569' }}>
+              <Clock className="w-3.5 h-3.5 mr-2" style={{ color: '#3B82F6' }} />
+              {currentTime.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })} {currentTime.toLocaleTimeString('ko-KR')}
+            </div>
+            <div className="relative" ref={partnerDropdownRef}>
+              <button
+                onClick={() => setPartnerDropdownOpen(prev => !prev)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-md text-[13px] font-bold transition-all"
+                style={{ backgroundColor: partnerDropdownOpen ? '#EEF2FF' : '#F8FAFC', border: `1px solid ${partnerDropdownOpen ? '#A5B4FC' : '#E2E8F0'}`, color: partnerDropdownOpen ? '#4F46E5' : '#475569' }}
+                onMouseEnter={e => { if (!partnerDropdownOpen) { e.currentTarget.style.backgroundColor = '#F1F5F9'; e.currentTarget.style.borderColor = '#CBD5E1'; }}}
+                onMouseLeave={e => { if (!partnerDropdownOpen) { e.currentTarget.style.backgroundColor = '#F8FAFC'; e.currentTarget.style.borderColor = '#E2E8F0'; }}}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                파트너사이트
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${partnerDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {partnerDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                  {[
+                    { name: 'AXGATE', desc: '엑스게이트 공식', url: 'https://www.axgate.com' },
+                    { name: 'CVnet', desc: '홈네트워크 전문기업', url: 'https://cvnet.imweb.me/' },
+                    { name: '현대HT', desc: '현대홈넷', url: 'https://hyundaiht.co.kr' },
+                    { name: '삼성SDS', desc: '삼성SDS 홈IoT', url: 'https://www.samsungsds.com' },
+                    { name: '코맥스', desc: '스마트홈 솔루션', url: 'https://www.commax.com' },
+                    { name: '코콤', desc: '홈네트워크', url: 'https://www.kocom.co.kr' },
+                  ].map((site, idx) => (
+                    <a
+                      key={idx}
+                      href={site.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setPartnerDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-indigo-50 flex items-center justify-center shrink-0 transition-colors">
+                        <Globe className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                      </div>
+                      <div>
+                        <p className="text-[12px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">{site.name}</p>
+                        <p className="text-[10px] text-slate-400">{site.desc}</p>
+                      </div>
+                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-400 ml-auto shrink-0 transition-colors" />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar" style={{ backgroundColor: '#F1F5F9' }}>
-          {activeMenu === 'complex_list' && <ComplexListDashboard onNavigate={setActiveMenu} onSelectComplex={handleSelectComplex} complexList={complexList} setComplexList={setComplexList} />}
-          {activeMenu === 'complex_detail' && <ComplexDetailDashboard onNavigate={setActiveMenu} complexId={selectedComplexId} complexList={complexList} isMounted={isMounted} onLog={handleLogUpdate} terminalLogs={terminalLogs} />}
-          {activeMenu === 'vulnerability' && <VulnerabilityDashboard onLog={handleLogUpdate} />}
-          {activeMenu === 'safety_inspection' && <SafetyInspectionDashboard onLog={handleLogUpdate} />}
-          {activeMenu === 'report' && <ReportDashboard />}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar" style={{ backgroundColor: '#F1F5F9' }}>
+          {activeMenu === 'complex_list' && <ComplexListDashboard key={resetKey} onNavigate={setActiveMenu} onSelectComplex={handleSelectComplex} complexList={complexList} setComplexList={setComplexList} />}
+          {activeMenu === 'complex_detail' && <ComplexDetailDashboard activeTab={activeDetailTab} onTabChange={setActiveDetailTab} onNavigate={(menu) => { setActiveMenu(menu); if (menu === 'complex_list') setSelectedComplexId(null); }} complexId={selectedComplexId} complexList={complexList} setComplexList={setComplexList} isMounted={isMounted} onLog={handleLogUpdate} terminalLogs={terminalLogs} />}
+          {activeMenu === 'vulnerability' && (
+            <VulnerabilityDashboard
+              onLog={handleLogUpdate}
+              complexId={selectedVulnComplexId}
+              complexList={complexList}
+              vulnerabilityData={vulnerabilityData}
+              onDataChange={(cId, list) => setVulnerabilityData(prev => ({ ...prev, [cId]: list }))}
+              onSelectComplex={setSelectedVulnComplexId}
+            />
+          )}
+          {activeMenu === 'safety_inspection' && (
+            <SafetyInspectionDashboard
+              onLog={handleLogUpdate}
+              complexId={selectedSafetyComplexId}
+              complexList={complexList}
+              safetyInspectionData={safetyInspectionData}
+              onDataChange={(cId, list) => setSafetyInspectionData(prev => ({ ...prev, [cId]: list }))}
+              onSelectComplex={setSelectedSafetyComplexId}
+            />
+          )}
+          {activeMenu === 'report' && (
+            <ReportDashboard
+              complexId={selectedReportComplexId}
+              complexList={complexList}
+              reportData={reportData}
+              onSelectComplex={setSelectedReportComplexId}
+              isAdmin={isAdmin}
+              onDataChange={(cId, list) => setReportData(prev => ({ ...prev, [cId]: list }))}
+            />
+          )}
+          {activeMenu === 'complex_mgmt_report' && (
+            <ComplexManagementReportDashboard
+              onLog={handleLogUpdate}
+              complexId={selectedComplexMgmtId}
+              complexList={complexList}
+              complexMgmtData={complexMgmtData}
+              onDataChange={(cId, list) => setComplexMgmtData(prev => ({ ...prev, [cId]: list }))}
+              onSelectComplex={setSelectedComplexMgmtId}
+            />
+          )}
           {activeMenu === 'account_management' && <AccountManagementDashboard onLog={handleLogUpdate} />}
         </div>
       </main>
