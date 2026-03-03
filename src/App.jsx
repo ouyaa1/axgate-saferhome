@@ -434,7 +434,6 @@ const ApprovalSystem = ({ approvals, setApprovals }) => {
 
 // --- [개선된 문서 미리보기 모달 컴포넌트] ---
 const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type, customMeta }) => {
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   const stats = useMemo(() => {
     const total = checklist.length;
@@ -444,33 +443,26 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
     return { total, good, bad, etc };
   }, [checklist]);
 
-  // PDF 다운로드 기능
+  // PDF 저장 (새 창으로 미리보기 내용 그대로 출력)
   const downloadPdf = () => {
-    setIsPdfLoading(true);
     const element = document.getElementById('pdf-report-content');
+    if (!element) return;
 
-    // PDF 변환 옵션 설정 (A4 기준 고품질 변환)
-    const opt = {
-      margin:       0,
-      filename:     `${title}_${date}.pdf`,
-      image:        { type: 'jpeg', quality: 1 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+    const styles = Array.from(document.styleSheets).map(sheet => {
+      try { return Array.from(sheet.cssRules).map(r => r.cssText).join(''); }
+      catch { return ''; }
+    }).join('');
 
-    const generate = () => {
-      window.html2pdf().set(opt).from(element).save().then(() => setIsPdfLoading(false));
-    };
-
-    // html2pdf 라이브러리가 로드되었는지 확인 후 실행, 없으면 스크립트 동적 추가
-    if (window.html2pdf) {
-      generate();
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-      script.onload = generate;
-      document.body.appendChild(script);
-    }
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <style>${styles}</style>
+      <style>
+        @page { margin: 0; size: A4 portrait; }
+        body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      </style>
+    </head><body>${element.outerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.onload = () => { printWindow.print(); };
   };
 
   // 인쇄하기 기능
@@ -496,9 +488,8 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
              <button onClick={handlePrint} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-200">
                <Printer className="w-4 h-4" /> 인쇄하기
              </button>
-             <button onClick={downloadPdf} disabled={isPdfLoading} className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-slate-300 disabled:opacity-50 min-w-[100px] justify-center">
-               {isPdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-               {isPdfLoading ? '생성 중...' : 'PDF 저장'}
+             <button onClick={downloadPdf} className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-slate-300">
+               <Download className="w-4 h-4" /> PDF 저장
              </button>
              <div className="w-px h-6 bg-slate-200 mx-1"></div>
              <button onClick={onClose} className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors">
@@ -5126,6 +5117,27 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
   const [statusDropdownId, setStatusDropdownId] = useState(null);
   const [previewReport, setPreviewReport] = useState(null);
 
+  const downloadReportPdf = () => {
+    const element = document.getElementById('pdf-report-preview-content');
+    if (!element) return;
+
+    const styles = Array.from(document.styleSheets).map(sheet => {
+      try { return Array.from(sheet.cssRules).map(r => r.cssText).join(''); }
+      catch { return ''; }
+    }).join('');
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <style>${styles}</style>
+      <style>
+        @page { margin: 0; size: A4 portrait; }
+        body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      </style>
+    </head><body>${element.outerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.onload = () => { printWindow.print(); };
+  };
+
   const reports = complexId ? (reportData[complexId] || []) : [];
 
   const handleStatusChange = (reportId, newStatus) => {
@@ -5376,7 +5388,7 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
 
             {/* 미리보기 본문 */}
             <div className="flex-1 overflow-y-auto p-8">
-              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-8">
+              <div id="pdf-report-preview-content" className="bg-slate-50 rounded-2xl border border-slate-200 p-8">
                 {/* 문서 헤더 영역 */}
                 <div className="text-center mb-8 pb-6 border-b border-slate-200">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">AXGATE SAFERHOME</p>
@@ -5442,7 +5454,7 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
             {/* 모달 하단 */}
             <div className="px-8 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
               <button onClick={() => setPreviewReport(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors">닫기</button>
-              <button onClick={() => { alert(`${previewReport.title} PDF 다운로드가 시작됩니다.`); }} className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all flex items-center gap-1.5">
+              <button onClick={() => downloadReportPdf(previewReport)} className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all flex items-center gap-1.5">
                 <Download className="w-3.5 h-3.5" /> PDF 다운로드
               </button>
             </div>
@@ -5672,7 +5684,7 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
                                 )}
                               </td>
                               <td className="px-6 py-5 text-center">
-                                <button onClick={() => alert(`${report.title} PDF 다운로드가 시작됩니다.`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all shadow-sm">
+                                <button onClick={() => setPreviewReport(report)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all shadow-sm">
                                   <Download className="w-3.5 h-3.5" /> PDF
                                 </button>
                               </td>
@@ -5935,7 +5947,7 @@ const LoginPage = ({ onLogin, onLoginWithRole }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // 가상의 로그인 처리 지연 효과
     setTimeout(() => {
       setIsLoading(false);
@@ -6465,13 +6477,13 @@ export default function App() {
         }}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150 outline-none text-left"
         style={{
-          backgroundColor: isActive ? 'rgba(59,130,246,0.12)' : 'transparent',
-          color: isActive ? '#60A5FA' : '#94A3B8',
-          borderLeft: isActive ? '3px solid #3B82F6' : '3px solid transparent',
+          backgroundColor: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+          color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)',
+          borderLeft: isActive ? '3px solid #93C5FD' : '3px solid transparent',
           fontWeight: isActive ? 600 : 400,
         }}
-        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#E2E8F0'; } }}
-        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#94A3B8'; } }}
+        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; } }}
+        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; } }}
       >
         <Icon size={16} strokeWidth={isActive ? 2 : 1.5} style={{ flexShrink: 0 }} />
         <span className="text-[13px] tracking-tight">{menu.label}</span>
@@ -6507,9 +6519,9 @@ export default function App() {
               value={sidebarComplexSearch}
               onChange={e => setSidebarComplexSearch(e.target.value)}
               className="w-full pl-7 pr-7 py-1.5 rounded-md text-[12px] outline-none transition-colors"
-              style={{ backgroundColor: '#1E293B', border: '1px solid #334155', color: '#E2E8F0' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#3B82F6'; }}
-              onBlur={e => { e.currentTarget.style.borderColor = '#334155'; }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#FFFFFF' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#93C5FD'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
             />
             {sidebarComplexSearch && (
               <button
@@ -6525,21 +6537,21 @@ export default function App() {
           </div>
           {/* 검색 결과 드롭다운 */}
           {sidebarComplexSearch.trim() && (
-            <div className="mt-1 max-h-40 overflow-y-auto rounded-md custom-scrollbar-dark" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
+            <div className="mt-1 max-h-40 overflow-y-auto rounded-md custom-scrollbar-dark" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
               {filteredComplexes.length > 0 ? filteredComplexes.map(c => (
                 <button
                   key={c.id}
                   onClick={() => handleSelectComplex(c.id)}
                   className="w-full flex items-center justify-between px-3 py-2 text-left transition-colors"
-                  style={{ color: '#CBD5E1' }}
-                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(59,130,246,0.15)'; e.currentTarget.style.color = '#E2E8F0'; }}
-                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#CBD5E1'; }}
+                  style={{ color: 'rgba(255,255,255,0.75)' }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(147,197,253,0.15)'; e.currentTarget.style.color = '#FFFFFF'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
                 >
                   <span className="text-[12px] font-medium truncate">{c.name}</span>
-                  <span className="text-[10px] ml-2 shrink-0" style={{ color: '#64748B' }}>{c.region}</span>
+                  <span className="text-[10px] ml-2 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }}>{c.region}</span>
                 </button>
               )) : (
-                <div className="px-3 py-2.5 text-[11px] text-center" style={{ color: '#64748B' }}>
+                <div className="px-3 py-2.5 text-[11px] text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>
                   검색 결과가 없습니다
                 </div>
               )}
@@ -6553,7 +6565,7 @@ export default function App() {
             {/* 선택된 단지명 헤더 */}
             <div className="flex items-center gap-2 px-3 py-2 mb-1">
               <MapPin size={12} style={{ color: '#f97316', flexShrink: 0 }} />
-              <span className="text-[12px] font-bold truncate" style={{ color: '#E2E8F0' }}>
+              <span className="text-[12px] font-bold truncate" style={{ color: '#FFFFFF' }}>
                 {selectedComplexData?.name || ''}
               </span>
               <button
@@ -6566,9 +6578,9 @@ export default function App() {
                   setSelectedComplexMgmtId(null);
                 }}
                 className="ml-auto p-1 rounded transition-colors"
-                style={{ color: '#64748B' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#E2E8F0'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+                style={{ color: 'rgba(255,255,255,0.4)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
                 title="목록으로 돌아가기"
               >
                 <ArrowLeft size={13} />
@@ -6587,13 +6599,13 @@ export default function App() {
                   }}
                   className="w-full flex items-center gap-2.5 pl-6 pr-3 py-2 rounded-md transition-all duration-150 outline-none text-left"
                   style={{
-                    backgroundColor: isActive ? 'rgba(249,115,22,0.12)' : 'transparent',
-                    color: isActive ? '#fb923c' : '#94A3B8',
+                    backgroundColor: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.55)',
                     borderLeft: isActive ? '3px solid #f97316' : '3px solid transparent',
                     fontWeight: isActive ? 600 : 400,
                   }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#E2E8F0'; } }}
-                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = isActive ? 'rgba(249,115,22,0.12)' : 'transparent'; e.currentTarget.style.color = isActive ? '#fb923c' : '#94A3B8'; } }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; } }}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = isActive ? 'rgba(255,255,255,0.12)' : 'transparent'; e.currentTarget.style.color = isActive ? '#FFFFFF' : 'rgba(255,255,255,0.55)'; } }}
                 >
                   <Icon size={14} strokeWidth={isActive ? 2 : 1.5} style={{ flexShrink: 0 }} />
                   <span className="text-[12px] tracking-tight">{tab.label}</span>
@@ -6612,28 +6624,28 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen h-screen bg-[#F1F5F9] text-slate-800 flex overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen h-screen bg-[#F8FAFC] text-slate-800 flex overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* 모바일 오버레이 */}
       {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />}
       {/* 사이드바 */}
-      <aside className={`w-[288px] flex flex-col z-40 shrink-0 fixed lg:static top-0 bottom-0 left-0 lg:h-screen transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`} style={{ backgroundColor: '#0F172A', borderRight: '1px solid #1E293B' }}>
+      <aside className={`w-[288px] flex flex-col z-40 shrink-0 fixed lg:static top-0 bottom-0 left-0 lg:h-screen transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`} style={{ backgroundColor: '#1B2A4A', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
         {/* 로고 */}
-        <div className="h-16 flex items-center px-5 shrink-0" style={{ backgroundColor: '#020617', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="h-16 flex items-center px-5 shrink-0" style={{ backgroundColor: '#152038', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div
             className="flex items-center gap-2.5 cursor-pointer select-none"
             onClick={() => { setActiveMenu('complex_list'); setSelectedComplexId(null); setSelectedVulnComplexId(null); setSelectedSafetyComplexId(null); setSelectedReportComplexId(null); setSelectedComplexMgmtId(null); setResetKey(k => k + 1); }}
           >
-            <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #3B82F6, #6366F1)' }}>
+            <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #2563EB, #1B2A4A)' }}>
               <Shield size={14} className="text-white" />
             </div>
             <div>
-              <div className="text-white font-black text-[15px] tracking-tight leading-none">AX<span style={{ color: '#f97316' }}>GATE</span></div>
-              <div className="text-[9px] font-semibold tracking-widest uppercase leading-none mt-0.5" style={{ color: '#64748B' }}>SaferHome</div>
+              <div className="font-black text-[15px] tracking-tight leading-none text-white">AX<span style={{ color: '#f97316' }}>GATE</span></div>
+              <div className="text-[9px] font-semibold tracking-widest uppercase leading-none mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>SaferHome</div>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-5 px-3 custom-scrollbar-dark">
+        <div className="flex-1 overflow-y-auto py-5 px-3 custom-scrollbar">
           {[
             { label: 'DASHBOARDS', items: menuItems, hasSubMenu: true },
             { label: 'MANAGEMENT', items: managementItems },
@@ -6641,7 +6653,7 @@ export default function App() {
             { label: 'SETTINGS', items: settingsItems },
           ].map(({ label, items, hasSubMenu }) => (
             <div key={label} className="mb-6">
-              <p className="text-[10px] font-bold px-3 mb-2 tracking-widest uppercase" style={{ color: '#64748B' }}>{label}</p>
+              <p className="text-[10px] font-bold px-3 mb-2 tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</p>
               <nav className="space-y-0.5">
                 {items.map(renderMenuItem)}
                 {hasSubMenu && renderDetailSubMenu()}
@@ -6651,21 +6663,21 @@ export default function App() {
           {/* 최근 확인 단지 */}
           {recentHistory.length > 0 && (
             <div className="mb-6">
-              <p className="text-[10px] font-bold px-3 mb-2 tracking-widest uppercase" style={{ color: '#64748B' }}>RECENT</p>
+              <p className="text-[10px] font-bold px-3 mb-2 tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>RECENT</p>
               <nav>
                 {recentHistory.map(({ id: cId, views }) => {
                   const c = complexList.find(x => x.id === cId);
                   if (!c) return null;
                   return (
-                    <div key={cId} className="px-3 py-1.5 rounded-md group/recent" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                    <div key={cId} className="px-3 py-1.5 rounded-md group/recent" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f97316' }} />
                         <button
                           onClick={() => { setSelectedComplexId(cId); setActiveMenu('complex_detail'); setActiveDetailTab('summary'); }}
                           className="text-[12px] font-medium truncate text-left hover:underline transition-all"
-                          style={{ color: '#CBD5E1' }}
+                          style={{ color: 'rgba(255,255,255,0.7)' }}
                           onMouseEnter={e => { e.currentTarget.style.color = '#f97316'; }}
-                          onMouseLeave={e => { e.currentTarget.style.color = '#CBD5E1'; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
                         >{c.name}</button>
                         <button
                           onClick={() => {
@@ -6700,7 +6712,7 @@ export default function App() {
                                 else if (v === 'complex_mgmt_report') { setSelectedComplexMgmtId(cId); setActiveMenu('complex_mgmt_report'); }
                               }}
                               className="px-2 py-0.5 rounded text-[9px] font-bold transition-all hover:opacity-80"
-                              style={{ backgroundColor: '#334155', color: '#94A3B8' }}
+                              style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.65)' }}
                             >
                               {m.label}
                             </button>
@@ -6716,23 +6728,23 @@ export default function App() {
         </div>
 
         {/* 사용자 정보 */}
-        <div className="p-3 shrink-0" style={{ borderTop: '1px solid #1E293B' }}>
-          <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: '#1E293B' }}>
+        <div className="p-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: '#1D4ED8' }}>
+              <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: '#2563EB' }}>
                 <User size={14} className="text-white" />
               </div>
               <div>
-                <div className="text-[13px] font-semibold leading-none mb-0.5" style={{ color: '#E2E8F0' }}>최고관리자</div>
-                <div className="text-[10px] leading-none" style={{ color: '#64748B' }}>admin@axgate.com</div>
+                <div className="text-[13px] font-semibold leading-none mb-0.5 text-white">최고관리자</div>
+                <div className="text-[10px] leading-none" style={{ color: 'rgba(255,255,255,0.4)' }}>admin@axgate.com</div>
               </div>
             </div>
             <button
               onClick={handleLogout}
               className="p-1.5 rounded-md transition-all"
-              style={{ color: '#475569' }}
-              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#334155'; e.currentTarget.style.color = '#94A3B8'; }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#475569'; }}
+              style={{ color: 'rgba(255,255,255,0.4)' }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#FFFFFF'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
               title="로그아웃"
             >
               <LogOut size={15} />
@@ -6804,7 +6816,7 @@ export default function App() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar" style={{ backgroundColor: '#F1F5F9' }}>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar" style={{ backgroundColor: '#F8FAFC' }}>
           {activeMenu === 'complex_list' && <ComplexListDashboard key={resetKey} onNavigate={setActiveMenu} onSelectComplex={handleSelectComplex} complexList={complexList} setComplexList={setComplexList} />}
           {activeMenu === 'complex_detail' && <ComplexDetailDashboard activeTab={activeDetailTab} onTabChange={setActiveDetailTab} onNavigate={(menu) => { setActiveMenu(menu); if (menu === 'complex_list') setSelectedComplexId(null); }} complexId={selectedComplexId} complexList={complexList} setComplexList={setComplexList} isMounted={isMounted} onLog={handleLogUpdate} terminalLogs={terminalLogs} />}
           {activeMenu === 'vulnerability' && (
@@ -6875,6 +6887,8 @@ export default function App() {
           body * { visibility: hidden; }
           #pdf-report-content, #pdf-report-content * { visibility: visible; }
           #pdf-report-content { position: absolute; left: 0; top: 0; box-shadow: none !important; width: 100%; margin: 0; padding: 0; }
+          #pdf-report-preview-content, #pdf-report-preview-content * { visibility: visible; }
+          #pdf-report-preview-content { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; background: white; }
           .no-print { display: none !important; }
         }
       `}} />
