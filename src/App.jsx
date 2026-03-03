@@ -438,106 +438,132 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
   const stats = useMemo(() => {
     const total = checklist.length;
     const good = checklist.filter(i => i.result === '양호').length;
-    const bad = checklist.filter(i => i.result === '취약' || i.result === '불량').length;
-    const etc = total - good - bad;
-    return { total, good, bad, etc };
+    const bad = checklist.filter(i => i.result === '취약' || i.result === '불량' || i.result === '미흡').length;
+    const manual = checklist.filter(i => i.result === '수동점검').length;
+    const etc = total - good - bad - manual;
+    return { total, good, bad, manual, etc };
   }, [checklist]);
 
-  // PDF 저장 (새 창으로 미리보기 내용 그대로 출력)
-  const downloadPdf = () => {
+  const docNo = useMemo(() => {
+    const y = (date || new Date().toISOString().split('T')[0]).substring(0, 4);
+    const typeCode = type === 'vulnerability' ? 'VUL' : type === 'unit' ? 'UNT' : type === 'complex_mgmt' ? 'MGT' : 'SAF';
+    const seq = Math.floor(Math.random() * 900 + 100);
+    return `AXGT-${y}-${typeCode}-${seq}`;
+  }, [date, type]);
+
+  const openPrintWindow = () => {
     const element = document.getElementById('pdf-report-content');
     if (!element) return;
-
-    const styles = Array.from(document.styleSheets).map(sheet => {
-      try { return Array.from(sheet.cssRules).map(r => r.cssText).join(''); }
-      catch { return ''; }
-    }).join('');
-
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${styles}</style>
+    const pw = window.open('', '_blank');
+    pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <title>${docNo}_${title}</title>
       <style>
         @page { margin: 0; size: A4 portrait; }
-        body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; font-family: 'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+        #pdf-report-content { width: 100% !important; min-height: auto !important; box-shadow: none !important; margin: 0 !important; }
+        table { border-collapse: collapse; page-break-inside: auto; width: 100%; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        tr { page-break-inside: avoid; page-break-after: auto; }
       </style>
     </head><body>${element.outerHTML}</body></html>`);
-    printWindow.document.close();
-    printWindow.onload = () => { printWindow.print(); };
+    pw.document.close();
+    const filename = `${docNo}_${title}`;
+    pw.document.title = filename;
+    pw.onload = () => {
+      pw.document.title = filename;
+      pw.print();
+    };
   };
 
-  // 인쇄하기 기능
-  const handlePrint = () => {
-    window.print();
+  const resultBadge = (result) => {
+    const base = 'white-space:nowrap;display:inline-block;';
+    if (result === '양호') return base + 'background:#d1fae5;color:#065f46;border:1px solid #a7f3d0';
+    if (result === '취약' || result === '불량' || result === '미흡') return base + 'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5';
+    if (result === '수동점검') return base + 'background:#fef9c3;color:#854d0e;border:1px solid #fde047';
+    return base + 'background:#f1f5f9;color:#475569;border:1px solid #cbd5e1';
   };
 
   return (
     <div className="fixed inset-0 z-[150] flex items-start justify-center bg-slate-900/80 backdrop-blur-md overflow-y-auto p-4 sm:p-8 custom-scrollbar">
-      <div className="relative w-full max-w-[850px] shrink-0 mt-10">
+      <div className="relative w-full max-w-[860px] shrink-0 mt-10">
         {/* 상단 툴바 */}
         <div className="sticky top-0 z-[160] flex justify-between items-center mb-6 bg-white/90 backdrop-blur-xl p-4 rounded-2xl border border-slate-200 shadow-2xl no-print">
-           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-               <FileText size={20} />
-             </div>
-             <div>
-               <h3 className="text-slate-900 font-black text-base">리포트 미리보기</h3>
-               <p className="text-[11px] font-bold text-slate-400">최종 검수 후 출력하시기 바랍니다.</p>
-             </div>
-           </div>
-           <div className="flex gap-2">
-             <button onClick={handlePrint} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-200">
-               <Printer className="w-4 h-4" /> 인쇄하기
-             </button>
-             <button onClick={downloadPdf} className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-slate-300">
-               <Download className="w-4 h-4" /> PDF 저장
-             </button>
-             <div className="w-px h-6 bg-slate-200 mx-1"></div>
-             <button onClick={onClose} className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors">
-               <X className="w-5 h-5" />
-             </button>
-           </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+              <FileText size={20} />
+            </div>
+            <div>
+              <h3 className="text-slate-900 font-black text-base">리포트 미리보기</h3>
+              <p className="text-[11px] font-bold text-slate-400">문서번호: {docNo}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={openPrintWindow} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-200">
+              <Printer className="w-4 h-4" /> 인쇄하기
+            </button>
+            <button onClick={openPrintWindow} className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-slate-300">
+              <Download className="w-4 h-4" /> PDF 저장
+            </button>
+            <div className="w-px h-6 bg-slate-200 mx-1 self-center"></div>
+            <button onClick={onClose} className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* A4 용지 영역 (세련된 스타일 적용) */}
-        <div id="pdf-report-content" className="w-full min-h-[1123px] bg-white shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] flex flex-col mx-auto mb-20 relative overflow-hidden font-sans">
+        {/* ── A4 문서 본체 ── */}
+        <div id="pdf-report-content" style={{
+          width: '210mm', minHeight: '297mm', background: '#fff',
+          margin: '0 auto', boxShadow: '0 30px 60px -12px rgba(0,0,0,0.25)',
+          fontFamily: "'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif",
+          fontSize: '10pt', color: '#1e293b', position: 'relative',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          {/* 상단 컬러바 */}
+          <div style={{ height: '4px', background: 'linear-gradient(90deg,#1B2A4A 0%,#f97316 100%)', flexShrink: 0 }} />
 
-           {/* 배경 워터마크 효과 */}
-           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none rotate-[15deg]">
-              <div className="text-[150px] font-black text-slate-900 select-none">AXGATE</div>
-           </div>
+          {/* ── 헤더 영역 ── */}
+          <div style={{ padding: '7mm 12mm 5mm', borderBottom: '2px solid #1B2A4A', flexShrink: 0, pageBreakInside: 'avoid', pageBreakAfter: 'avoid' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5mm' }}>
 
-           {/* 최상단 악센트 바 */}
-           <div className="h-2 bg-[#f97316] w-full"></div>
+              {/* 로고 + 발신 정보 */}
+              <div>
+                <div style={{ fontSize: '20pt', fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, color: '#1e293b' }}>
+                  AX<span style={{ color: '#f97316' }}>GATE</span>
+                </div>
+                <div style={{ fontSize: '6pt', color: '#f97316', fontWeight: 700, letterSpacing: '3px', marginTop: '2px' }}>SECURITY &amp; BEYOND</div>
+                <div style={{ marginTop: '4px', fontSize: '6.5pt', color: '#64748b', lineHeight: 1.7 }}>
+                  <div>㈜엑스게이트 ICT사업본부</div>
+                  <div>서울특별시 금천구 가산디지털1로 168, A동 1503호</div>
+                  <div>TEL: 02-1644-4306 | www.axgate.com</div>
+                </div>
+              </div>
 
-           {/* 문서 헤더 */}
-           <div className="p-16 pb-10">
-              <div className="flex justify-between items-start mb-12">
-                <AxgateLogo />
-
-                {/* 결재 영역 */}
-                <table className="border-collapse border border-slate-300 text-[10px] w-56 table-fixed">
+              {/* 결재 테이블 */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                <div style={{ fontSize: '6pt', color: '#94a3b8', fontWeight: 700, letterSpacing: '2px', textAlign: 'right' }}>APPROVAL</div>
+                <table style={{ borderCollapse: 'collapse', fontSize: '7pt', minWidth: '160px' }}>
                   <tbody>
                     <tr>
-                      <td rowSpan="2" className="border border-slate-300 bg-slate-50 font-bold w-6 text-center text-slate-500 py-2" style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}>결재</td>
+                      <td rowSpan={2} style={{ border: '1px solid #cbd5e1', background: '#f8fafc', fontWeight: 700, color: '#475569', padding: '3px 5px', textAlign: 'center', writingMode: 'vertical-rl', textOrientation: 'upright', width: '18px' }}>결재</td>
                       {approvals.map((app, i) => (
-                        <td key={i} className="border border-slate-300 text-center bg-slate-50 text-slate-600 py-1.5 font-bold">{app.role}</td>
+                        <td key={i} style={{ border: '1px solid #cbd5e1', background: '#f8fafc', fontWeight: 700, color: '#334155', padding: '4px 8px', textAlign: 'center', minWidth: '46px' }}>{app.role}</td>
                       ))}
                     </tr>
-                    <tr className="h-16">
+                    <tr>
                       {approvals.map((app, i) => (
-                        <td key={i} className="border border-slate-300 text-center relative align-middle">
+                        <td key={i} style={{ border: '1px solid #cbd5e1', height: '38px', textAlign: 'center', verticalAlign: 'middle', padding: '3px' }}>
                           {app.status === 'approved' && (
-                            <div className="flex flex-col items-center justify-center">
-                              {app.stampImage ? (
-                                <img src={app.stampImage} alt="stamp" className="max-w-[42px] max-h-[42px] object-contain opacity-90" />
-                              ) : (
-                                <div className="px-2 py-0.5 border-[2px] border-rose-600/70 rounded flex items-center justify-center transform -rotate-[5deg] opacity-80 min-w-[36px]">
-                                  <span className="text-[12px] font-black font-serif text-rose-600 whitespace-nowrap">
-                                    {app.name}
-                                  </span>
-                                </div>
-                              )}
-                              <span className="text-[8px] text-slate-400 font-mono mt-1">{app.date}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              {app.stampImage
+                                ? <img src={app.stampImage} alt="stamp" style={{ maxWidth: '34px', maxHeight: '34px', opacity: 0.9 }} />
+                                : <div style={{ border: '2.5px solid rgba(225,29,72,0.8)', borderRadius: '6px', padding: '2px 7px', transform: 'rotate(-8deg)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(225,29,72,0.18)' }}>
+                                    <span style={{ fontSize: '9pt', fontWeight: 900, color: 'rgba(225,29,72,0.9)', fontFamily: 'serif', whiteSpace: 'nowrap', letterSpacing: '0.1em' }}>{app.name}</span>
+                                  </div>
+                              }
+                              <span style={{ fontSize: '6pt', color: '#94a3b8', fontFamily: 'monospace', marginTop: '2px' }}>{app.date}</span>
                             </div>
                           )}
                         </td>
@@ -546,167 +572,140 @@ const DocumentPreviewModal = ({ onClose, title, date, approvals, checklist, type
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* 제목 영역 */}
-              <div className="mb-10 text-center relative">
-                <div className="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-600 text-[11px] font-black rounded-full mb-3 tracking-widest uppercase">Official Inspection Report</div>
-                <h1 className="text-[34px] font-black text-slate-900 tracking-tight leading-tight">{title}</h1>
-                <div className="h-1 w-20 bg-[#f97316] mx-auto mt-6 rounded-full opacity-30"></div>
-              </div>
+            {/* 문서 제목 + 메타 */}
+            <div style={{ borderLeft: '3px solid #f97316', paddingLeft: '10px', marginBottom: '4mm' }}>
+              <div style={{ fontSize: '6.5pt', color: '#f97316', fontWeight: 800, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '3px' }}>Official Inspection Report</div>
+              <div style={{ fontSize: '15pt', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', lineHeight: 1.2 }}>{title}</div>
+            </div>
 
-              {/* 문서 메타 정보 */}
-              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex flex-wrap gap-x-12 gap-y-4 mb-8">
-                {customMeta ? customMeta.map((m, i) => (
-                  <div key={i} className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{m.label}</p>
-                    <p className="text-sm font-bold text-slate-800">{m.value}</p>
+            {/* 문서 정보 박스 */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 12px', display: 'flex', flexWrap: 'wrap', gap: '0' }}>
+              {(customMeta ? customMeta : [
+                { label: '문서 번호', value: docNo },
+                { label: '작성일', value: date || new Date().toISOString().split('T')[0] },
+                { label: '보안 등급', value: '대외비 (CONFIDENTIAL)' },
+                { label: '작성 부서', value: 'ICT사업본부 기술지원팀' },
+              ]).map((m, i, arr) => (
+                <div key={i} style={{ flex: '1 1 40%', padding: '4px 8px', borderRight: i % 2 === 0 && i < arr.length - 1 ? '1px solid #e2e8f0' : 'none', borderBottom: i < arr.length - 2 ? '1px solid #e2e8f0' : 'none' }}>
+                  <div style={{ fontSize: '6pt', color: '#94a3b8', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '1px' }}>{m.label}</div>
+                  <div style={{ fontSize: '7.5pt', fontWeight: 700, color: '#1e293b' }}>{m.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── 요약 통계 ── */}
+          <div style={{ padding: '4mm 12mm', borderBottom: '1px solid #e2e8f0', flexShrink: 0, background: '#fafafa', pageBreakInside: 'avoid', pageBreakAfter: 'avoid' }}>
+            <div style={{ fontSize: '6.5pt', fontWeight: 800, color: '#94a3b8', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>INSPECTION SUMMARY</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[
+                { label: '전체 항목', value: stats.total, bg: '#f1f5f9', border: '#e2e8f0', color: '#334155' },
+                { label: '양호 / 정상', value: stats.good, bg: '#f0fdf4', border: '#bbf7d0', color: '#166534' },
+                { label: '취약 / 불량', value: stats.bad, bg: '#fff1f2', border: '#fecdd3', color: '#9f1239' },
+                { label: '수동 점검', value: stats.manual, bg: '#fefce8', border: '#fef08a', color: '#854d0e' },
+              ].map((s, i) => (
+                <div key={i} style={{ flex: 1, background: s.bg, border: `1px solid ${s.border}`, borderRadius: '6px', padding: '5px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '6pt', fontWeight: 700, color: s.color, marginBottom: '2px', whiteSpace: 'nowrap' }}>{s.label}</div>
+                  <div style={{ fontSize: '14pt', fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: '6pt', color: s.color, opacity: 0.7, marginTop: '2px' }}>
+                    {stats.total > 0 ? Math.round(s.value / stats.total * 100) : 0}%
                   </div>
-                )) : (
-                  <>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">검토 단지</p>
-                      <p className="text-sm font-bold text-slate-800">디에이치 아너힐즈 (AX-PRM-01)</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">점검 범위</p>
-                      <p className="text-sm font-bold text-slate-800">망분리 시스템 및 통합 단지서버</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">보고서 생성일</p>
-                      <p className="text-sm font-bold text-slate-800 font-mono">{date || new Date().toISOString().split('T')[0]}</p>
-                    </div>
-                  </>
-                )}
-              </div>
+                  <div style={{ marginTop: '4px', background: 'rgba(0,0,0,0.08)', borderRadius: '3px', height: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: `${stats.total > 0 ? Math.round(s.value / stats.total * 100) : 0}%`, height: '100%', background: s.color, opacity: 0.6 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-              {/* 점검 요약 (Summary 카드) */}
-              <div className="grid grid-cols-4 gap-4 mb-10">
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-slate-400 mb-1">전체 항목</span>
-                  <span className="text-2xl font-black text-slate-800">{stats.total}</span>
-                </div>
-                <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 shadow-sm flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-emerald-500 mb-1 text-center">양호/정상</span>
-                  <span className="text-2xl font-black text-emerald-600">{stats.good}</span>
-                </div>
-                <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-4 shadow-sm flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-rose-500 mb-1 text-center">취약/불량</span>
-                  <span className="text-2xl font-black text-rose-600">{stats.bad}</span>
-                </div>
-                <div className="bg-slate-100/50 border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-slate-500 mb-1">기타</span>
-                  <span className="text-2xl font-black text-slate-600">{stats.etc}</span>
-                </div>
-              </div>
-           </div>
+          {/* ── 점검 내역 테이블 ── */}
+          <div style={{ padding: '4mm 12mm', flex: 1 }}>
+            <div style={{ fontSize: '6.5pt', fontWeight: 800, color: '#94a3b8', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>INSPECTION DETAILS</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7.5pt', tableLayout: 'fixed', pageBreakInside: 'auto' }}>
+              <thead style={{ display: 'table-header-group' }}>
+                <tr style={{ background: '#1B2A4A', color: '#fff' }}>
+                  {type === 'unit' ? (<>
+                    <th style={{ padding: '5px 8px', width: '75px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>분류</th>
+                    <th style={{ padding: '5px 8px', textAlign: 'left', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>점검 항목</th>
+                    <th style={{ padding: '5px 8px', width: '62px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>결과</th>
+                    <th style={{ padding: '5px 8px', width: '110px', textAlign: 'center', fontWeight: 700 }}>상세 내용</th>
+                  </>) : type === 'vulnerability' ? (<>
+                    <th style={{ padding: '5px 8px', width: '52px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>ID</th>
+                    <th style={{ padding: '5px 8px', width: '80px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>분류</th>
+                    <th style={{ padding: '5px 8px', textAlign: 'left', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>점검 항목</th>
+                    <th style={{ padding: '5px 8px', width: '62px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>결과</th>
+                    <th style={{ padding: '5px 8px', width: '90px', textAlign: 'center', fontWeight: 700 }}>비고</th>
+                  </>) : type === 'complex_mgmt' ? (<>
+                    <th style={{ padding: '5px 8px', width: '52px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>ID</th>
+                    <th style={{ padding: '5px 8px', width: '80px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>분류</th>
+                    <th style={{ padding: '5px 8px', textAlign: 'left', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>점검 항목</th>
+                    <th style={{ padding: '5px 8px', width: '62px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>결과</th>
+                    <th style={{ padding: '5px 8px', width: '90px', textAlign: 'center', fontWeight: 700 }}>비고</th>
+                  </>) : (<>
+                    <th style={{ padding: '5px 8px', width: '90px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>분류</th>
+                    <th style={{ padding: '5px 8px', textAlign: 'left', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>점검 항목</th>
+                    <th style={{ padding: '5px 8px', width: '62px', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.15)', fontWeight: 700 }}>점검 주기</th>
+                    <th style={{ padding: '5px 8px', width: '58px', textAlign: 'center', fontWeight: 700 }}>결과</th>
+                  </>)}
+                </tr>
+              </thead>
+              <tbody>
+                {checklist.map((item, idx) => (
+                  <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0', pageBreakInside: 'avoid' }}>
+                    {type === 'unit' ? (<>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', fontWeight: 700, color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '7pt' }}>{item.category}</td>
+                      <td style={{ padding: '4px 7px', color: '#334155', lineHeight: 1.4, borderRight: '1px solid #e2e8f0' }}>{item.item}</td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', borderRight: '1px solid #e2e8f0' }}>
+                        <span style={{ padding: '1px 5px', borderRadius: '3px', fontWeight: 800, fontSize: '6.5pt', ...Object.fromEntries(resultBadge(item.result).split(';').filter(Boolean).map(s => { const [k,v]=s.split(':'); return [k.trim().replace(/-([a-z])/g,(_,c)=>c.toUpperCase()), v.trim()]; })) }}>{item.result}</span>
+                      </td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', color: '#64748b', fontSize: '6.5pt' }}>{item.note}</td>
+                    </>) : type === 'vulnerability' ? (<>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', color: '#64748b', fontFamily: 'monospace', borderRight: '1px solid #e2e8f0', fontSize: '7pt' }}>{item.id}</td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', fontWeight: 700, color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '7pt' }}>{item.category}</td>
+                      <td style={{ padding: '4px 7px', color: '#334155', lineHeight: 1.4, borderRight: '1px solid #e2e8f0' }}>{item.item}</td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', borderRight: '1px solid #e2e8f0' }}>
+                        <span style={{ padding: '1px 5px', borderRadius: '3px', fontWeight: 800, fontSize: '6.5pt', ...Object.fromEntries(resultBadge(item.result).split(';').filter(Boolean).map(s => { const [k,v]=s.split(':'); return [k.trim().replace(/-([a-z])/g,(_,c)=>c.toUpperCase()), v.trim()]; })) }}>{item.result}</span>
+                      </td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', color: '#64748b', fontSize: '6.5pt' }}>{item.note}</td>
+                    </>) : type === 'complex_mgmt' ? (<>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', color: '#64748b', fontFamily: 'monospace', borderRight: '1px solid #e2e8f0', fontSize: '7pt' }}>{item.id}</td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', fontWeight: 700, color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '7pt' }}>{item.category}</td>
+                      <td style={{ padding: '4px 7px', color: '#334155', lineHeight: 1.4, borderRight: '1px solid #e2e8f0' }}>{item.item}</td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', borderRight: '1px solid #e2e8f0' }}>
+                        <span style={{ padding: '1px 5px', borderRadius: '3px', fontWeight: 800, fontSize: '6.5pt', ...Object.fromEntries(resultBadge(item.result).split(';').filter(Boolean).map(s => { const [k,v]=s.split(':'); return [k.trim().replace(/-([a-z])/g,(_,c)=>c.toUpperCase()), v.trim()]; })) }}>{item.result}</span>
+                      </td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', color: '#64748b', fontSize: '6.5pt' }}>{item.note}</td>
+                    </>) : (<>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', fontWeight: 700, color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '7pt' }}>{item.category}</td>
+                      <td style={{ padding: '4px 7px', color: '#334155', lineHeight: 1.4, borderRight: '1px solid #e2e8f0' }}>{item.item}</td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center', color: '#64748b', fontFamily: 'monospace', borderRight: '1px solid #e2e8f0', fontSize: '7pt' }}>{item.cycleRec}</td>
+                      <td style={{ padding: '4px 7px', textAlign: 'center' }}>
+                        <span style={{ padding: '1px 5px', borderRadius: '3px', fontWeight: 800, fontSize: '6.5pt', ...Object.fromEntries(resultBadge(item.result).split(';').filter(Boolean).map(s => { const [k,v]=s.split(':'); return [k.trim().replace(/-([a-z])/g,(_,c)=>c.toUpperCase()), v.trim()]; })) }}>{item.result}</span>
+                      </td>
+                    </>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-           {/* 점검 내역 테이블 (본문) */}
-           <div className="px-16 flex-1">
-             <table className="w-full border-collapse text-[11px] table-fixed">
-               <thead>
-                 <tr className="bg-slate-800 text-white">
-                   {type === 'unit' ? (
-                     <>
-                       <th className="p-3 w-24 text-center rounded-tl-lg font-bold border-r border-slate-700">분류</th>
-                       <th className="p-3 text-left font-bold border-r border-slate-700">점검 항목</th>
-                       <th className="p-3 w-24 text-center font-bold border-r border-slate-700">결과</th>
-                       <th className="p-3 w-48 text-center rounded-tr-lg font-bold">상세 내용</th>
-                     </>
-                   ) : type === 'vulnerability' ? (
-                     <>
-                       <th className="p-3 w-16 text-center rounded-tl-lg font-bold border-r border-slate-700">ID</th>
-                       <th className="p-3 w-32 text-center font-bold border-r border-slate-700">분류</th>
-                       <th className="p-3 text-left font-bold border-r border-slate-700">점검 항목</th>
-                       <th className="p-3 w-20 text-center font-bold border-r border-slate-700">결과</th>
-                       <th className="p-3 w-32 text-center rounded-tr-lg font-bold">비고</th>
-                     </>
-                   ) : type === 'complex_mgmt' ? (
-                     <>
-                       <th className="p-3 w-16 text-center rounded-tl-lg font-bold border-r border-slate-700">ID</th>
-                       <th className="p-3 w-28 text-center font-bold border-r border-slate-700">분류</th>
-                       <th className="p-3 text-left font-bold border-r border-slate-700">점검 항목</th>
-                       <th className="p-3 w-20 text-center font-bold border-r border-slate-700">결과</th>
-                       <th className="p-3 w-32 text-center rounded-tr-lg font-bold">비고</th>
-                     </>
-                   ) : (
-                     <>
-                       <th className="p-3 w-32 text-center rounded-tl-lg font-bold border-r border-slate-700">분류</th>
-                       <th className="p-3 text-left font-bold border-r border-slate-700">점검 항목</th>
-                       <th className="p-3 w-24 text-center font-bold border-r border-slate-700">점검 주기</th>
-                       <th className="p-3 w-20 text-center rounded-tr-lg font-bold">결과</th>
-                     </>
-                   )}
-                 </tr>
-               </thead>
-               <tbody className="border border-slate-200 divide-y divide-slate-100">
-                 {checklist.map((item, idx) => (
-                   <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                     {type === 'unit' ? (
-                       <>
-                         <td className="p-3 text-center font-bold text-slate-600 border-r border-slate-100">{item.category}</td>
-                         <td className="p-3 font-medium text-slate-700 border-r border-slate-100 leading-snug">{item.item}</td>
-                         <td className="p-3 text-center border-r border-slate-100">
-                           <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
-                             item.result === '불량' || item.result === '위험' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'
-                           }`}>{item.result}</span>
-                         </td>
-                         <td className="p-3 text-center text-slate-500 text-[10px] italic">{item.note}</td>
-                       </>
-                     ) : type === 'vulnerability' ? (
-                       <>
-                         <td className="p-3 text-center text-slate-500 font-mono border-r border-slate-100">{item.id}</td>
-                         <td className="p-3 text-center font-bold text-slate-600 border-r border-slate-100">{item.category}</td>
-                         <td className="p-3 font-medium text-slate-700 border-r border-slate-100 leading-snug">{item.item}</td>
-                         <td className="p-3 text-center border-r border-slate-100">
-                           <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
-                             item.result === '취약' ? 'bg-rose-100 text-rose-600' : item.result === '양호' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'
-                           }`}>{item.result}</span>
-                         </td>
-                         <td className="p-3 text-center text-slate-500 text-[10px] italic">{item.note}</td>
-                       </>
-                     ) : type === 'complex_mgmt' ? (
-                       <>
-                         <td className="p-3 text-center text-slate-500 font-mono border-r border-slate-100">{item.id}</td>
-                         <td className="p-3 text-center font-bold text-slate-600 border-r border-slate-100">{item.category}</td>
-                         <td className="p-3 font-medium text-slate-700 border-r border-slate-100 leading-snug">{item.item}</td>
-                         <td className="p-3 text-center border-r border-slate-100">
-                           <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
-                             item.result === '양호' ? 'bg-emerald-100 text-emerald-600' : item.result === '미흡' ? 'bg-rose-100 text-rose-600' : 'bg-slate-200 text-slate-500'
-                           }`}>{item.result}</span>
-                         </td>
-                         <td className="p-3 text-center text-slate-500 text-[10px] italic">{item.note}</td>
-                       </>
-                     ) : (
-                       <>
-                         <td className="p-3 text-center font-bold text-slate-600 border-r border-slate-100">{item.category}</td>
-                         <td className="p-3 font-medium text-slate-700 border-r border-slate-100 leading-snug">{item.item}</td>
-                         <td className="p-3 text-center text-slate-500 font-mono border-r border-slate-100">{item.cycleRec}</td>
-                         <td className="p-3 text-center">
-                           <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
-                             item.result === '불량' ? 'bg-rose-100 text-rose-600' : item.result === '양호' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'
-                           }`}>{item.result}</span>
-                         </td>
-                       </>
-                     )}
-                   </tr>
-                 ))}
-               </tbody>
-             </table>
-           </div>
-
-           {/* 푸터 영역 */}
-           <div className="p-16 pt-10">
-              <div className="flex justify-between items-end border-t border-slate-200 pt-10">
-                <div className="text-[10px] text-slate-400 space-y-1">
-                   <p>주식회사 엑스게이트 ICT사업본부</p>
-                   <p>TEL: 02-123-4567 | FAX: 02-765-4321</p>
-                   <p>COPYRIGHT © AXGATE CO., LTD. ALL RIGHTS RESERVED.</p>
-                </div>
-                <div className="text-[20px] font-black text-slate-700 tracking-wider">
-                  AXGATE
-                </div>
+          {/* ── 푸터 ── */}
+          <div style={{ padding: '5mm 12mm 6mm', borderTop: '2px solid #1B2A4A', background: '#f8fafc', flexShrink: 0, pageBreakInside: 'avoid', pageBreakBefore: 'avoid' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '6.5pt', color: '#94a3b8', lineHeight: 1.7 }}>
+                <div style={{ fontWeight: 800, color: '#475569', marginBottom: '2px' }}>㈜엑스게이트 · ICT사업본부 기술지원팀</div>
+                <div>서울특별시 금천구 가산디지털1로 168, A동 1503호</div>
+                <div>TEL: 02-1644-4306 | FAX: 02-2026-4306 | www.axgate.com</div>
+                <div style={{ marginTop: '3px', color: '#cbd5e1' }}>본 문서는 {docNo} 기준으로 작성되었으며, 무단 배포를 금합니다.</div>
               </div>
-           </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '16pt', fontWeight: 900, color: '#1B2A4A', letterSpacing: '-1px', lineHeight: 1 }}>AX<span style={{ color: '#f97316' }}>GATE</span></div>
+                <div style={{ fontSize: '6pt', color: '#94a3b8', letterSpacing: '2px', marginTop: '2px' }}>COPYRIGHT © AXGATE CO., LTD.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1790,34 +1789,34 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-[#f8fafc] border-b border-slate-100">
                       <tr>
-                        <th className="px-10 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest w-48">보고서 유형</th>
-                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest w-32 text-center">점검 주기</th>
-                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest w-40">최근 발급일</th>
-                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest w-40">차기 발급 예정일</th>
-                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">발급 상태</th>
+                        <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">보고서 유형</th>
+                        <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">점검 주기</th>
+                        <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">최근 발급일</th>
+                        <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">차기 발급 예정일</th>
+                        <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">발급 상태</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {reportStatus.map((report, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-10 py-6">
+                          <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-lg ${
+                              <div className={`p-2 rounded-lg shrink-0 ${
                                 report.status === '발급완료' ? 'bg-indigo-50 text-indigo-500' : 'bg-slate-100 text-slate-400'
                               }`}>
-                                <FileText size={18} />
+                                <FileText size={16} />
                               </div>
-                              <span className="text-[15px] font-bold text-slate-800">{report.type}</span>
+                              <span className="text-[14px] font-bold text-slate-800 whitespace-nowrap">{report.type}</span>
                             </div>
                           </td>
-                          <td className="px-8 py-6 text-center">
-                            <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[11px] font-black rounded-full uppercase tracking-tighter">
+                          <td className="px-6 py-4 text-center">
+                            <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[11px] font-black rounded-full uppercase tracking-tighter whitespace-nowrap">
                               {report.interval}
                             </span>
                           </td>
-                          <td className="px-8 py-6 text-sm font-bold text-slate-600 font-mono">{report.lastDate}</td>
-                          <td className="px-8 py-6 text-sm font-bold text-slate-400 font-mono">{report.nextDate}</td>
-                          <td className="px-8 py-6 text-center">
+                          <td className="px-6 py-4 text-sm font-bold text-slate-600 font-mono whitespace-nowrap">{report.lastDate}</td>
+                          <td className="px-6 py-4 text-sm font-bold text-slate-400 font-mono whitespace-nowrap">{report.nextDate}</td>
+                          <td className="px-6 py-4 text-center">
                             <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12px] font-black ${
                               report.status === '발급완료' ? 'bg-emerald-50 text-emerald-600' : 
                               report.status === '작성중' ? 'bg-orange-50 text-orange-600 animate-pulse' : 
@@ -5937,7 +5936,7 @@ const AccountManagementDashboard = ({ onLog }) => {
 
 // --- [로그인 컴포넌트] ---
 const LoginPage = ({ onLogin, onLoginWithRole }) => {
-  const [loginRole, setLoginRole] = useState('admin');
+  const loginRole = 'admin';
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -6127,20 +6126,6 @@ const LoginPage = ({ onLogin, onLoginWithRole }) => {
             />
           </div>
 
-          {/* 역할 탭 */}
-          <div className="flex gap-2">
-            {['user','admin'].map(role => (
-              <button key={role} type="button" onClick={() => setLoginRole(role)}
-                className="flex-1 py-2 rounded-full text-[11px] font-bold tracking-wide uppercase transition-all"
-                style={{
-                  backgroundColor: loginRole === role ? '#1B3A6B' : 'transparent',
-                  color: loginRole === role ? '#ffffff' : '#94A3B8',
-                  border: `1.5px solid ${loginRole === role ? '#1B3A6B' : '#CBD5E1'}`,
-                }}>
-                {role === 'user' ? '사용자' : '관리자'}
-              </button>
-            ))}
-          </div>
 
           {/* 로그인 버튼 */}
           <button
@@ -6441,26 +6426,27 @@ export default function App() {
   };
 
   const menuItems = [
-    { id: 'complex_list', icon: Building2, label: '통합 단지 목록' },
+    { id: 'complex_list', icon: Building2, label: '통합 단지 목록', color: '#3B82F6' },
   ];
 
   const managementItems = [
-    { id: 'vulnerability', icon: AlertTriangle, label: '취약점 분석 및 조치' },
-    { id: 'safety_inspection', icon: ClipboardCheck, label: '홈네트워크 안전점검' },
-    { id: 'complex_mgmt_report', icon: Activity, label: '단지관리 운영점검' },
+    { id: 'vulnerability', icon: AlertTriangle, label: '취약점 분석 및 조치', color: '#EF4444' },
+    { id: 'safety_inspection', icon: ClipboardCheck, label: '홈네트워크 안전점검', color: '#EF4444' },
+    { id: 'complex_mgmt_report', icon: Activity, label: '단지관리 운영점검', color: '#EF4444' },
   ];
 
   const reportItems = [
-    { id: 'report', icon: FileText, label: '통합 보고서 센터' },
+    { id: 'report', icon: FileText, label: '통합 보고서 센터', color: '#10B981' },
   ];
 
   const settingsItems = [
-    { id: 'account_management', icon: Users, label: '계정 및 권한 관리' },
+    { id: 'account_management', icon: Users, label: '계정 및 권한 관리', color: '#8B5CF6' },
   ];
 
   const renderMenuItem = (menu) => {
     const Icon = menu.icon;
     const isActive = activeMenu === menu.id;
+    const accent = menu.color || '#93C5FD';
     return (
       <button
         key={menu.id}
@@ -6479,13 +6465,13 @@ export default function App() {
         style={{
           backgroundColor: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
           color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)',
-          borderLeft: isActive ? '3px solid #93C5FD' : '3px solid transparent',
+          borderLeft: isActive ? `3px solid ${accent}` : '3px solid transparent',
           fontWeight: isActive ? 600 : 400,
         }}
         onMouseEnter={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; } }}
         onMouseLeave={e => { if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; } }}
       >
-        <Icon size={16} strokeWidth={isActive ? 2 : 1.5} style={{ flexShrink: 0 }} />
+        <Icon size={16} strokeWidth={isActive ? 2 : 1.5} style={{ flexShrink: 0, color: isActive ? accent : 'inherit' }} />
         <span className="text-[13px] tracking-tight">{menu.label}</span>
       </button>
     );
@@ -6589,7 +6575,7 @@ export default function App() {
             {/* 하위 탭 메뉴 */}
             {detailTabs.map(tab => {
               const Icon = tab.icon;
-              const isActive = activeDetailTab === tab.id;
+              const isActive = activeMenu === 'complex_detail' && activeDetailTab === tab.id;
               return (
                 <button
                   key={tab.id}
