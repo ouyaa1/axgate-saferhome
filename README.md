@@ -1,16 +1,46 @@
-# React + Vite
+# AXGATE SaferHome
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+아파트 단지 홈네트워크 보안 관리 시스템
 
-Currently, two official plugins are available:
+## 프로젝트 구조
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+axgate-saferhome/
+├── frontend/          ← React 프론트엔드
+├── backend/           ← Spring Boot 백엔드
+├── AXGATE_SaferHome_개발가이드.md
+└── AXGATE_SaferHome_프론트엔드_구조설명서.md
+```
 
-## React Compiler
+## 기술 스택
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| 구분 | 기술 |
+|---|---|
+| 프론트엔드 | React 19, Vite 7, Tailwind CSS 4 |
+| 백엔드 | Spring Boot 3.2, JPA, JWT |
+| 데이터베이스 | MariaDB |
 
-## Expanding the ESLint configuration
+## 빠른 시작
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 프론트엔드
+```bash
+cd frontend
+npm install
+npm run dev        # → http://localhost:5173
+```
+
+### 백엔드
+```bash
+# 1. MariaDB에서 schema.sql 실행
+cd backend
+gradle wrapper
+./gradlew bootRun  # → http://localhost:8080
+```
+
+### 기본 로그인
+- ID: `admin` / PW: `admin123`
+
+## 문서
+- [개발 가이드](./AXGATE_SaferHome_개발가이드.md)
+- [프론트엔드 구조 설명서](./AXGATE_SaferHome_프론트엔드_구조설명서.md)
+- [API 명세서](./backend/API_SPEC.md)
