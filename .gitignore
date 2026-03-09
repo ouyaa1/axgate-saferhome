@@ -1,0 +1,19 @@
+# Node
+node_modules/
+dist/
+
+# Java
+build/
+.gradle/
+*.class
+*.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Env
+.env
+*.log
