@@ -176,7 +176,7 @@ const generateAllComplexMgmtData = (complexList) => {
   return data;
 };
 
-const REPORT_TYPES = ['취약점 점검', '안전 점검', '단지 보고서', '종합 보고서'];
+const REPORT_TYPES = ['취약점 점검 보고서', '안전 점검 보고서', '종합 점검 보고서'];
 const REPORT_AUTHORS = ['박신일', '장정구', '시스템', '김철수'];
 
 const generateReportsForComplex = (complexId, complexName) => {
@@ -1601,6 +1601,203 @@ const LogServerDashboard = ({ isMounted }) => (
   </div>
 );
 
+const VaccineDashboard = () => {
+  const [activeMenu, setActiveMenu] = useState('home');
+  const [realtimeOn, setRealtimeOn] = useState(true);
+  const [phishingOn, setPhishingOn] = useState(false);
+
+  const menuItems = [
+    { id: 'home', label: '보안 홈', icon: Home },
+    { id: 'scan', label: '선택 검사', icon: Search },
+    { id: 'phishing', label: '안티 피싱', icon: Globe },
+    { id: 'optimize', label: 'PC최적화', icon: Zap },
+    { id: 'help', label: '도움말', icon: Info },
+  ];
+
+  const settings = [
+    { label: '검사설정', value: '실행 파일만 검사합니다.' },
+    { label: '치료설정', value: '백업 후 삭제합니다.' },
+    { label: '자동치료', value: '검사 시 수동 치료합니다.' },
+    { label: '업데이트', value: '부팅 시 업데이트합니다.' },
+  ];
+
+  const extras = [
+    { label: '로그 보기', icon: FileText },
+    { label: '검역소 보기', icon: Archive },
+    { label: '오토런 방지', icon: Lock },
+    { label: '폴더보호', icon: Shield },
+  ];
+
+  return (
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* 상단 헤더: 로고 + 업데이트/환경설정 */}
+      <div className="px-8 py-5 flex items-center justify-between border-b border-slate-100" style={{ backgroundColor: '#F8FAFC' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1B2A4A, #2563EB)' }}>
+            <ShieldCheck size={20} className="text-white" />
+          </div>
+          <div>
+            <div className="font-black text-[18px] tracking-tight leading-none text-slate-800">SAFERHOME</div>
+            <div className="text-[10px] font-semibold tracking-widest uppercase leading-none mt-1 text-slate-400">Internet Security</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+            <RefreshCw size={13} /> 업데이트
+          </button>
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+            <Settings size={13} /> 환경설정
+          </button>
+        </div>
+      </div>
+
+      {/* 본문 3컬럼 */}
+      <div className="grid grid-cols-[180px_1fr_240px]">
+        {/* 좌측 메뉴 */}
+        <div className="py-6 px-3 border-r border-slate-100 flex flex-col">
+          <nav className="flex-1 space-y-1">
+            {menuItems.map(m => {
+              const Icon = m.icon;
+              const isActive = activeMenu === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setActiveMenu(m.id)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all relative"
+                  style={{
+                    color: isActive ? '#1B2A4A' : '#64748B',
+                    backgroundColor: isActive ? '#FEF3C7' : 'transparent',
+                    fontWeight: isActive ? 700 : 500,
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = '#F1F5F9'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  <Icon size={16} />
+                  <span className="text-[13px]">{m.label}</span>
+                  {isActive && <span className="absolute right-3 w-1 h-5 rounded-full" style={{ backgroundColor: '#f59e0b' }} />}
+                </button>
+              );
+            })}
+          </nav>
+          <p className="text-[10px] text-slate-400 px-4 mt-4 leading-tight">© AXGATE SAFERHOME<br/>ALL RIGHTS RESERVED.</p>
+        </div>
+
+        {/* 중앙 메인 */}
+        <div className="p-8">
+          <h2 className="text-2xl font-black text-slate-800 mb-2">보안 홈</h2>
+          <p className="text-[13px] text-slate-500 leading-relaxed mb-6">
+            인터넷을 통해 유입되는 각종 바이러스 및 악성코드로 인한<br/>
+            시스템 상태를 SAFERHOME을 이용하여 진단하고 치료할 수 있습니다.
+          </p>
+
+          {/* 설정 상태 박스 */}
+          <div className="bg-[#f8fafc] border border-slate-200 rounded-2xl p-5 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield size={16} style={{ color: '#f59e0b' }} />
+              <span className="text-[13px] font-black text-slate-800">설정 상태</span>
+            </div>
+            <ul className="space-y-2.5">
+              {settings.map(s => (
+                <li key={s.label} className="flex items-center text-[13px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mr-3"></span>
+                  <span className="font-bold text-slate-700 w-20">{s.label}</span>
+                  <span className="text-slate-500">{s.value}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <p className="text-center text-[12px] text-slate-400 mb-4">상기 설정 상태로 검사하시겠습니까?</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button className="flex items-center justify-center gap-2 py-3.5 rounded-xl text-[14px] font-black text-white shadow-md hover:shadow-lg transition-all" style={{ backgroundColor: '#1B2A4A' }}>
+              <Search size={16} /> 정밀 검사
+            </button>
+            <button className="flex items-center justify-center gap-2 py-3.5 rounded-xl text-[14px] font-black text-white shadow-md hover:shadow-lg transition-all" style={{ backgroundColor: '#f59e0b' }}>
+              <Clock size={16} /> 빠른 검사
+            </button>
+          </div>
+        </div>
+
+        {/* 우측 패널 */}
+        <div className="p-6 border-l border-slate-100 flex flex-col gap-5" style={{ backgroundColor: '#FAFBFC' }}>
+          {/* 모니터링 */}
+          <div>
+            <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <span className="w-1 h-3 rounded-full" style={{ backgroundColor: '#f59e0b' }}></span>
+              모니터링
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => setRealtimeOn(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors"
+              >
+                <span className="text-[12px] font-bold text-slate-700">실시간 감시 {realtimeOn ? 'On' : 'Off'}</span>
+                <span className={`inline-flex w-8 h-4 rounded-full items-center px-0.5 transition-colors ${realtimeOn ? 'bg-emerald-500 justify-end' : 'bg-slate-300 justify-start'}`}>
+                  <span className="w-3 h-3 rounded-full bg-white shadow"></span>
+                </span>
+              </button>
+              <button
+                onClick={() => setPhishingOn(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors"
+              >
+                <span className="text-[12px] font-bold text-slate-700">피싱 감시 {phishingOn ? 'On' : 'Off'}</span>
+                {phishingOn ? (
+                  <span className="inline-flex w-8 h-4 rounded-full items-center px-0.5 bg-emerald-500 justify-end">
+                    <span className="w-3 h-3 rounded-full bg-white shadow"></span>
+                  </span>
+                ) : (
+                  <X size={14} className="text-rose-400" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* 부가기능 */}
+          <div>
+            <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <span className="w-1 h-3 rounded-full" style={{ backgroundColor: '#f59e0b' }}></span>
+              부가기능
+            </p>
+            <div className="space-y-1.5">
+              {extras.map(ex => {
+                const Icon = ex.icon;
+                return (
+                  <button
+                    key={ex.label}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors group"
+                  >
+                    <span className="flex items-center gap-2 text-[12px] font-bold text-slate-700">
+                      <Icon size={13} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                      {ex.label}
+                    </span>
+                    <ArrowRight size={12} className="text-slate-400" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 운영상태 */}
+          <div className="mt-auto pt-4 border-t border-slate-200">
+            <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest mb-2">운영상태</p>
+            <div className="text-[11px] text-slate-500 space-y-1">
+              <div className="flex justify-between">
+                <span>업데이트</span>
+                <span className="font-mono font-bold text-slate-700">2026.04.16.0</span>
+              </div>
+              <div className="flex justify-between">
+                <span>최종검사</span>
+                <span className="font-mono font-bold text-slate-700">2026/04/03</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId, complexList, setComplexList, isMounted, onLog, terminalLogs }) => {
   const selectedData = complexList.find(item => item.id === complexId) || complexList[0];
   const [showEditModal, setShowEditModal] = useState(false);
@@ -1625,18 +1822,28 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
     homenetContact: selectedData.homenetContact
   };
 
-  const reportStatus = [
+  const [reportStatus, setReportStatus] = useState([
     { type: "보안 취약점 점검", interval: "주간", lastDate: "2026-02-19", nextDate: "2026-02-26", status: "발급완료" },
     { type: "안전 점검", interval: "주간", lastDate: "2026-02-15", nextDate: "2026-02-22", status: "발급완료" },
     { type: "월간 종합 점검", interval: "월간", lastDate: "2026-01-31", nextDate: "2026-02-28", status: "작성중" }
-  ];
+  ]);
+
+  const handleIssueReport = (idx) => {
+    setReportStatus(prev => prev.map((r, i) => {
+      if (i !== idx) return r;
+      const today = new Date();
+      const lastDate = today.toISOString().slice(0, 10);
+      const next = new Date(today);
+      if (r.interval === '주간') next.setDate(next.getDate() + 7);
+      else if (r.interval === '월간') next.setMonth(next.getMonth() + 1);
+      else next.setDate(next.getDate() + 7);
+      return { ...r, status: '발급완료', lastDate, nextDate: next.toISOString().slice(0, 10) };
+    }));
+  };
 
   const tabs = [
     { id: 'summary', label: '단지 요약', icon: LayoutDashboard },
-    { id: 'server', label: '단지서버', icon: Server },
-    { id: 'log_server', label: 'AXGATE SAFERHOME', icon: Archive },
-    { id: 'firewall', label: '방화벽', icon: Shield },
-    { id: 'network', label: '백본', icon: Network },
+    { id: 'vaccine', label: '백신', icon: ShieldCheck },
     { id: 'separation', label: '단지관리', icon: Activity },
     { id: 'separation_2', label: '단지관리 ADMIN', icon: Activity },
     { id: 'logs', label: '로그', icon: ScrollText },
@@ -1699,93 +1906,131 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
         {activeTab === 'summary' && (
           <div className="flex flex-col gap-8 animate-in fade-in zoom-in-95 duration-300">
             {/* 상단 단지 정보 카드 */}
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200 overflow-hidden relative group">
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 overflow-hidden relative group">
               <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
                 <Building2 size={240} className="text-slate-900" />
               </div>
-              <div className="flex flex-col lg:flex-row justify-between gap-10 relative z-10">
-                <div className="flex-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                    <div className="bg-[#f8fafc] p-5 rounded-2xl border border-slate-100 flex flex-col justify-center">
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">시스템 등록일</p>
-                      <div className="flex items-center gap-2">
-                        <Calendar size={16} className="text-slate-400" />
-                        <p className="text-lg font-black text-slate-800 font-mono">{complexInfo.regDate}</p>
-                      </div>
+              <div className="flex flex-col lg:flex-row gap-4 relative z-10">
+                <div className="flex-1 flex flex-col gap-3 min-w-0">
+                  {/* 시스템 헬스 스트립 */}
+                  <div className="shrink-0">
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">상태 정보</p>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                      {[
+                        { id: 'server', label: '단지서버', icon: Server, online: true },
+                        { id: 'log_server', label: 'AXGATE SAFERHOME', icon: Archive, online: true },
+                        { id: 'firewall', label: '방화벽', icon: Shield, online: false },
+                        { id: 'network', label: '백본', icon: Network, online: true },
+                      ].map(item => {
+                        const Icon = item.icon;
+                        return (
+                          <div
+                            key={item.id}
+                            className="relative overflow-hidden rounded-lg px-2.5 py-1.5 text-left flex items-center gap-2 shadow-sm bg-white border border-slate-200"
+                          >
+                            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-transform group-hover/hb:scale-110 bg-slate-100">
+                              <Icon size={12} className="text-slate-500" />
+                            </div>
+                            <p className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex-1 min-w-0 truncate">{item.label}</p>
+                            <span className={`inline-flex items-center gap-1 shrink-0 ${item.online ? 'text-emerald-600' : 'text-slate-400'}`}>
+                              {item.online ? (
+                                <span className="relative flex w-1.5 h-1.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                </span>
+                              ) : (
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                              )}
+                              <span className="text-[9px] font-black">{item.online ? 'ON' : 'OFF'}</span>
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    
-                    <div className="bg-[#f8fafc] p-5 rounded-2xl border border-slate-100 flex flex-col justify-center">
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">단지 관리사무소</p>
-                      <div className="flex items-end justify-between">
-                        <p className="text-base font-black text-slate-800">{complexInfo.manager}</p>
-                        <p className="text-xs font-bold text-slate-500 font-mono">{complexInfo.contact}</p>
+                  </div>
+
+                  {/* 담당자 / 등록일 그리드 */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 flex-1">
+                    <div className="bg-[#f8fafc] p-3 rounded-lg border border-slate-100 flex flex-col justify-center">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">시스템 등록일</p>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar size={13} className="text-slate-400" />
+                        <p className="text-sm font-black text-slate-800 font-mono">{complexInfo.regDate}</p>
                       </div>
                     </div>
 
-                    <div className="bg-[#f8fafc] p-5 rounded-2xl border border-slate-100 flex flex-col justify-center relative">
-                      <div className="flex justify-between items-center mb-1">
-                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">건설사 담당자</p>
-                        <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold">{complexInfo.builder}</span>
-                      </div>
-                      <div className="flex items-end justify-between">
-                        <p className="text-base font-black text-slate-800">{complexInfo.builderManager}</p>
-                        <p className="text-xs font-bold text-slate-500 font-mono">{complexInfo.builderContact}</p>
+                    <div className="bg-[#f8fafc] p-3 rounded-lg border border-slate-100 flex flex-col justify-center">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">단지 관리사무소</p>
+                      <div className="flex items-end justify-between gap-2">
+                        <p className="text-sm font-black text-slate-800 truncate">{complexInfo.manager}</p>
+                        <p className="text-[11px] font-bold text-slate-500 font-mono shrink-0">{complexInfo.contact}</p>
                       </div>
                     </div>
 
-                    <div className="bg-[#f8fafc] p-5 rounded-2xl border border-slate-100 flex flex-col justify-center relative">
-                      <div className="flex justify-between items-center mb-1">
-                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">홈넷사 담당자</p>
-                        <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold">{complexInfo.homenet}</span>
+                    <div className="bg-[#f8fafc] p-3 rounded-lg border border-slate-100 flex flex-col justify-center relative">
+                      <div className="flex justify-between items-center mb-0.5 gap-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">건설사 담당자</p>
+                        <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold shrink-0">{complexInfo.builder}</span>
                       </div>
-                      <div className="flex items-end justify-between">
-                        <p className="text-base font-black text-slate-800">{complexInfo.homenetManager}</p>
-                        <p className="text-xs font-bold text-slate-500 font-mono">{complexInfo.homenetContact}</p>
+                      <div className="flex items-end justify-between gap-2">
+                        <p className="text-sm font-black text-slate-800 truncate">{complexInfo.builderManager}</p>
+                        <p className="text-[11px] font-bold text-slate-500 font-mono shrink-0">{complexInfo.builderContact}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#f8fafc] p-3 rounded-lg border border-slate-100 flex flex-col justify-center relative">
+                      <div className="flex justify-between items-center mb-0.5 gap-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">홈넷사 담당자</p>
+                        <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold shrink-0">{complexInfo.homenet}</span>
+                      </div>
+                      <div className="flex items-end justify-between gap-2">
+                        <p className="text-sm font-black text-slate-800 truncate">{complexInfo.homenetManager}</p>
+                        <p className="text-[11px] font-bold text-slate-500 font-mono shrink-0">{complexInfo.homenetContact}</p>
                       </div>
                     </div>
                   </div>
                 </div>
-                
-                <div className="w-full lg:w-80 space-y-4">
-                  <div className="bg-[#fff7ed] border border-[#ffedd5] p-6 rounded-3xl h-full flex flex-col">
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="text-sm font-black text-[#ea580c]">오늘의 관제 요약</h4>
-                      <Info size={16} className="text-[#fb923c]" />
-                    </div>
-                    <ul className="space-y-4 flex-1 justify-center flex flex-col">
-                      <li className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#f97316]"></div>
-                        단지서버 보안 위협 2건 탐지 (조치완료)
-                      </li>
-                      <li className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#f97316]"></div>
-                        정기 안전점검표 100% 작성 완료
-                      </li>
-                      <li className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
-                        네트워크 장비 정기 재부팅 예정 (D-2)
-                      </li>
-                    </ul>
+
+                {/* 월간 종합 점검 원클릭 발급 CTA */}
+                <div className="lg:w-56 shrink-0 rounded-2xl p-5 flex flex-col justify-between text-white shadow-lg relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 55%, #818cf8 100%)' }}>
+                  <div className="absolute -top-6 -right-6 opacity-10 pointer-events-none">
+                    <FileText size={120} />
                   </div>
+                  <div className="relative z-10">
+                    <p className="text-[10px] font-black opacity-80 uppercase tracking-widest mb-1">One-Click Issue</p>
+                    <p className="text-lg font-black leading-tight">월간 종합<br/>점검 발급</p>
+                    <p className="text-[11px] font-bold opacity-80 mt-1.5">
+                      {reportStatus[2]?.status === '발급완료'
+                        ? `최근 발급 ${reportStatus[2]?.lastDate}`
+                        : '한 번의 클릭으로 즉시 발급'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleIssueReport(2)}
+                    className="relative z-10 mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-black bg-white text-indigo-600 hover:bg-indigo-50 transition-all shadow-md"
+                  >
+                    <FileText size={14} />
+                    원클릭 발급
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* 보고서 발급 상태 테이블 섹션 */}
-            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
               <div className="px-10 py-7 border-b border-slate-100 bg-slate-50/30 flex justify-between items-center">
                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
                   <FileSpreadsheet className="w-6 h-6 text-indigo-600" /> 단지별 보고서 발급 현황
                 </h3>
                 <div className="flex gap-2">
-                   <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+                   <button onClick={() => onNavigate && onNavigate('report')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
                      전체 이력 보기
                    </button>
                 </div>
               </div>
               
               <div className="p-8">
-                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-[#f8fafc] border-b border-slate-100">
                       <tr>
@@ -1794,6 +2039,7 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
                         <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">최근 발급일</th>
                         <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">차기 발급 예정일</th>
                         <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">발급 상태</th>
+                        <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">발급</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1827,6 +2073,15 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
                               {report.status}
                             </span>
                           </td>
+                          <td className="px-6 py-4 text-center">
+                            <button
+                              onClick={() => handleIssueReport(idx)}
+                              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[12px] font-black bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md whitespace-nowrap"
+                            >
+                              <FileText size={14} />
+                              발급
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1838,6 +2093,11 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
         )}
         
         {/* 선택된 탭의 대시보드 렌더링 영역 */}
+        {activeTab === 'vaccine' && (
+          <div className="animate-in fade-in zoom-in-95 duration-300">
+            <VaccineDashboard />
+          </div>
+        )}
         {activeTab === 'server' && <div className="animate-in fade-in zoom-in-95 duration-300"><ServerDashboard isMounted={isMounted} /></div>}
         {/* 신규 HOMES 대시보드 */}
         {activeTab === 'log_server' && <div className="animate-in fade-in zoom-in-95 duration-300"><LogServerDashboard isMounted={isMounted} /></div>}
@@ -2787,17 +3047,22 @@ const VulnerabilityDashboard = ({ onLog, complexId, complexList, vulnerabilityDa
         />
       )}
 
-      {/* 뒤로가기 바 */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-3">
-        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
-          <ArrowLeft className="w-4 h-4" /> 단지 목록으로
-        </button>
-        <div className="h-5 w-px bg-slate-200" />
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-indigo-500" />
-          <span className="text-sm font-bold text-slate-800">{currentComplex?.name}</span>
-          <span className="text-xs text-slate-400">{currentComplex?.region}</span>
+      {/* 단지 정보 바 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#f97316' }}>
+          <Building2 className="w-5 h-5 text-white" />
         </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-slate-800 truncate">{currentComplex?.name}</p>
+          <div className="flex items-center gap-2.5 mt-0.5">
+            <span className="flex items-center gap-1 text-[11px] text-slate-400"><MapPin className="w-3 h-3" />{currentComplex?.region}</span>
+            <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }}><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }} />상태: {currentComplex?.status}</span>
+            <span className="text-[11px] text-slate-400">총 {currentComplex?.dongCount || 0}동 / {currentComplex?.totalUnits || 0}세대</span>
+          </div>
+        </div>
+        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all shrink-0">
+          <ArrowLeft className="w-3.5 h-3.5" /> 목록
+        </button>
       </div>
 
       <div className="grid grid-cols-4 gap-6">
@@ -4639,17 +4904,22 @@ const SafetyInspectionDashboard = ({ onLog, complexId, complexList, safetyInspec
         />
       )}
 
-      {/* 뒤로가기 바 */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-3">
-        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
-          <ArrowLeft className="w-4 h-4" /> 단지 목록으로
-        </button>
-        <div className="h-5 w-px bg-slate-200" />
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-emerald-500" />
-          <span className="text-sm font-bold text-slate-800">{currentComplex?.name}</span>
-          <span className="text-xs text-slate-400">{currentComplex?.region}</span>
+      {/* 단지 정보 바 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#f97316' }}>
+          <Building2 className="w-5 h-5 text-white" />
         </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-slate-800 truncate">{currentComplex?.name}</p>
+          <div className="flex items-center gap-2.5 mt-0.5">
+            <span className="flex items-center gap-1 text-[11px] text-slate-400"><MapPin className="w-3 h-3" />{currentComplex?.region}</span>
+            <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }}><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }} />상태: {currentComplex?.status}</span>
+            <span className="text-[11px] text-slate-400">총 {currentComplex?.dongCount || 0}동 / {currentComplex?.totalUnits || 0}세대</span>
+          </div>
+        </div>
+        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all shrink-0">
+          <ArrowLeft className="w-3.5 h-3.5" /> 목록
+        </button>
       </div>
 
       {/* 상단 컨트롤 바 */}
@@ -4978,17 +5248,22 @@ const ComplexManagementReportDashboard = ({ onLog, complexId, complexList, compl
         />
       )}
 
-      {/* 뒤로가기 바 */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-3">
-        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-teal-600 hover:bg-teal-50 transition-all">
-          <ArrowLeft className="w-4 h-4" /> 단지 목록으로
-        </button>
-        <div className="h-5 w-px bg-slate-200" />
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-teal-500" />
-          <span className="text-sm font-bold text-slate-800">{currentComplex?.name}</span>
-          <span className="text-xs text-slate-400">{currentComplex?.region}</span>
+      {/* 단지 정보 바 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#f97316' }}>
+          <Building2 className="w-5 h-5 text-white" />
         </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-slate-800 truncate">{currentComplex?.name}</p>
+          <div className="flex items-center gap-2.5 mt-0.5">
+            <span className="flex items-center gap-1 text-[11px] text-slate-400"><MapPin className="w-3 h-3" />{currentComplex?.region}</span>
+            <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }}><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }} />상태: {currentComplex?.status}</span>
+            <span className="text-[11px] text-slate-400">총 {currentComplex?.dongCount || 0}동 / {currentComplex?.totalUnits || 0}세대</span>
+          </div>
+        </div>
+        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all shrink-0">
+          <ArrowLeft className="w-3.5 h-3.5" /> 목록
+        </button>
       </div>
 
       <div className="grid grid-cols-4 gap-6">
@@ -5146,8 +5421,10 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
     setStatusDropdownId(null);
   };
 
-  const filteredReports = reports.filter(report => {
-    const matchSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const normalizeType = (t) => t === '취약점 점검' ? '취약점 점검 보고서' : t === '안전 점검' ? '안전 점검 보고서' : t === '종합 보고서' ? '종합 점검 보고서' : t;
+  const normalizedReports = reports.filter(r => r.type !== '단지 보고서').map(r => ({ ...r, type: normalizeType(r.type) }));
+  const filteredReports = normalizedReports.filter(report => {
+    const matchSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         report.author.toLowerCase().includes(searchTerm.toLowerCase());
     const matchType = filterType === '전체' || report.type === filterType;
     return matchSearch && matchType;
@@ -5227,7 +5504,7 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
               <button onClick={() => setLandingView('list')} className={`p-2 rounded-lg transition-all ${landingView === 'list' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}><ListFilter className="w-4 h-4" /></button>
             </div>
             <button
-              onClick={() => alert(checkedIds.length > 0 ? `선택된 ${checkedIds.length}개 단지 보고서 일괄 다운로드 (데모)` : '전체 단지 보고서 일괄 다운로드 (데모)')}
+              onClick={() => alert(checkedIds.length > 0 ? `선택된 ${checkedIds.length}개 보고서 일괄 다운로드 (데모)` : '전체 보고서 일괄 다운로드 (데모)')}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 whitespace-nowrap ${checkedIds.length > 0 ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-slate-900 text-white hover:bg-black'}`}
             >
               <Download className="w-4 h-4" /> 일괄 다운로드{checkedIds.length > 0 && ` (${checkedIds.length})`}
@@ -5243,7 +5520,7 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
         ) : landingView === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
             {filtered.map(c => {
-              const data = reportData[c.id] || [];
+              const data = (reportData[c.id] || []).filter(r => r.type !== '단지 보고서').map(r => ({ ...r, type: normalizeType(r.type) }));
               const typeCount = {};
               data.forEach(r => { typeCount[r.type] = (typeCount[r.type] || 0) + 1; });
               const isChecked = checkedIds.includes(c.id);
@@ -5278,7 +5555,7 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
                     </div>
                     <div className="flex gap-2">
                       {Object.entries(typeCount).slice(0, 4).map(([type, cnt]) => (
-                        <span key={type} className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">{type.replace(' 점검', '').replace(' 보고서', '')} {cnt}</span>
+                        <span key={type} className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">{type.replace(' 점검 보고서', '').replace(' 보고서', '')} {cnt}</span>
                       ))}
                     </div>
                   </div>
@@ -5304,7 +5581,7 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.map(c => {
-                  const data = reportData[c.id] || [];
+                  const data = (reportData[c.id] || []).filter(r => r.type !== '단지 보고서').map(r => ({ ...r, type: normalizeType(r.type) }));
                   const latest = data[0];
                   const isChecked = checkedIds.includes(c.id);
                   return (
@@ -5337,9 +5614,9 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
 
   // --- 상세 모드 (단지 선택됨) ---
   const currentComplex = complexList.find(c => c.id === complexId);
-  const totalReports = reports.length;
+  const totalReports = normalizedReports.length;
   const typeCounts = {};
-  reports.forEach(r => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1; });
+  normalizedReports.forEach(r => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1; });
 
   return (
     <div className="flex flex-col gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-500" onClick={() => statusDropdownId && setStatusDropdownId(null)}>
@@ -5461,21 +5738,26 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
         </div>
       )}
 
-      {/* 뒤로가기 바 */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-3">
-        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-purple-600 hover:bg-purple-50 transition-all">
-          <ArrowLeft className="w-4 h-4" /> 단지 목록으로
-        </button>
-        <div className="h-5 w-px bg-slate-200" />
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-purple-500" />
-          <span className="text-sm font-bold text-slate-800">{currentComplex?.name}</span>
-          <span className="text-xs text-slate-400">{currentComplex?.region}</span>
+      {/* 단지 정보 바 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#f97316' }}>
+          <Building2 className="w-5 h-5 text-white" />
         </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-slate-800 truncate">{currentComplex?.name}</p>
+          <div className="flex items-center gap-2.5 mt-0.5">
+            <span className="flex items-center gap-1 text-[11px] text-slate-400"><MapPin className="w-3 h-3" />{currentComplex?.region}</span>
+            <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }}><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }} />상태: {currentComplex?.status}</span>
+            <span className="text-[11px] text-slate-400">총 {currentComplex?.dongCount || 0}동 / {currentComplex?.totalUnits || 0}세대</span>
+          </div>
+        </div>
+        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all shrink-0">
+          <ArrowLeft className="w-3.5 h-3.5" /> 목록
+        </button>
       </div>
 
       {/* 통계 요약 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <div
           onClick={() => setFilterType('전체')}
           className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '전체' ? 'border-slate-400 ring-2 ring-slate-100 shadow-md transform scale-[1.02]' : 'border-slate-100 shadow-sm hover:border-slate-300 hover:shadow-md'}`}
@@ -5488,47 +5770,36 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
         </div>
 
         <div
-          onClick={() => setFilterType('취약점 점검')}
-          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '취약점 점검' ? 'border-indigo-500 ring-2 ring-indigo-100 shadow-md transform scale-[1.02]' : 'border-indigo-100 shadow-sm hover:border-indigo-300 hover:shadow-md'}`}
+          onClick={() => setFilterType('취약점 점검 보고서')}
+          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '취약점 점검 보고서' ? 'border-indigo-500 ring-2 ring-indigo-100 shadow-md transform scale-[1.02]' : 'border-indigo-100 shadow-sm hover:border-indigo-300 hover:shadow-md'}`}
         >
           <div>
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">취약점 점검</p>
-            <p className="text-3xl font-black text-indigo-600 mt-1">{typeCounts['취약점 점검'] || 0}<span className="text-sm font-medium text-indigo-600/60 ml-1">건</span></p>
+            <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">취약점 점검 보고서</p>
+            <p className="text-3xl font-black text-indigo-600 mt-1">{typeCounts['취약점 점검 보고서'] || 0}<span className="text-sm font-medium text-indigo-600/60 ml-1">건</span></p>
           </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '취약점 점검' ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-50 text-indigo-600'}`}><AlertTriangle /></div>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '취약점 점검 보고서' ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-50 text-indigo-600'}`}><AlertTriangle /></div>
         </div>
 
         <div
-          onClick={() => setFilterType('안전 점검')}
-          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '안전 점검' ? 'border-emerald-500 ring-2 ring-emerald-100 shadow-md transform scale-[1.02]' : 'border-emerald-100 shadow-sm hover:border-emerald-300 hover:shadow-md'}`}
+          onClick={() => setFilterType('안전 점검 보고서')}
+          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '안전 점검 보고서' ? 'border-emerald-500 ring-2 ring-emerald-100 shadow-md transform scale-[1.02]' : 'border-emerald-100 shadow-sm hover:border-emerald-300 hover:shadow-md'}`}
         >
           <div>
-            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">안전 점검</p>
-            <p className="text-3xl font-black text-emerald-600 mt-1">{typeCounts['안전 점검'] || 0}<span className="text-sm font-medium text-emerald-600/60 ml-1">건</span></p>
+            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">안전 점검 보고서</p>
+            <p className="text-3xl font-black text-emerald-600 mt-1">{typeCounts['안전 점검 보고서'] || 0}<span className="text-sm font-medium text-emerald-600/60 ml-1">건</span></p>
           </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '안전 점검' ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-50 text-emerald-600'}`}><ShieldCheck /></div>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '안전 점검 보고서' ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-50 text-emerald-600'}`}><ShieldCheck /></div>
         </div>
 
         <div
-          onClick={() => setFilterType('단지 보고서')}
-          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '단지 보고서' ? 'border-purple-500 ring-2 ring-purple-100 shadow-md transform scale-[1.02]' : 'border-purple-100 shadow-sm hover:border-purple-300 hover:shadow-md'}`}
+          onClick={() => setFilterType('종합 점검 보고서')}
+          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '종합 점검 보고서' ? 'border-orange-500 ring-2 ring-orange-100 shadow-md transform scale-[1.02]' : 'border-orange-100 shadow-sm hover:border-orange-300 hover:shadow-md'}`}
         >
           <div>
-            <p className="text-xs font-bold text-purple-600 uppercase tracking-wider">단지 보고서</p>
-            <p className="text-3xl font-black text-purple-600 mt-1">{typeCounts['단지 보고서'] || 0}<span className="text-sm font-medium text-purple-600/60 ml-1">건</span></p>
+            <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">종합 점검 보고서</p>
+            <p className="text-3xl font-black text-orange-600 mt-1">{typeCounts['종합 점검 보고서'] || 0}<span className="text-sm font-medium text-orange-600/60 ml-1">건</span></p>
           </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '단지 보고서' ? 'bg-purple-100 text-purple-700' : 'bg-purple-50 text-purple-600'}`}><Building2 /></div>
-        </div>
-
-        <div
-          onClick={() => setFilterType('종합 보고서')}
-          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '종합 보고서' ? 'border-orange-500 ring-2 ring-orange-100 shadow-md transform scale-[1.02]' : 'border-orange-100 shadow-sm hover:border-orange-300 hover:shadow-md'}`}
-        >
-          <div>
-            <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">종합 점검</p>
-            <p className="text-3xl font-black text-orange-600 mt-1">{typeCounts['종합 보고서'] || 0}<span className="text-sm font-medium text-orange-600/60 ml-1">건</span></p>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '종합 보고서' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-600'}`}><Layers /></div>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '종합 점검 보고서' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-600'}`}><Layers /></div>
         </div>
       </div>
 
@@ -5536,7 +5807,7 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
       <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 flex flex-col">
         <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 rounded-t-[2.5rem] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
-            <FileDown className="w-6 h-6 text-indigo-600" /> 종합 점검 보고서 이력
+            <FileDown className="w-6 h-6 text-indigo-600" /> {currentComplex?.name} 점검 보고서 이력
           </h3>
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
@@ -5556,10 +5827,9 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
                 className="appearance-none w-[130px] px-4 py-2.5 pl-10 pr-8 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
               >
                 <option value="전체">모든 유형</option>
-                <option value="취약점 점검">취약점 점검</option>
-                <option value="안전 점검">안전 점검</option>
-                <option value="단지 보고서">단지 보고서</option>
-                <option value="종합 보고서">종합 보고서</option>
+                <option value="취약점 점검 보고서">취약점 점검 보고서</option>
+                <option value="안전 점검 보고서">안전 점검 보고서</option>
+                <option value="종합 점검 보고서">종합 점검 보고서</option>
               </select>
               <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
@@ -5591,9 +5861,9 @@ const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, 
                   <div key={catIdx} className="bg-slate-50 rounded-3xl p-6 border border-slate-200/60">
                     <h4 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
                       <div className={`w-1.5 h-4 rounded-full ${
-                        category === '취약점 점검' ? 'bg-indigo-500' :
-                        category === '안전 점검' ? 'bg-emerald-500' :
-                        category === '단지 보고서' ? 'bg-purple-500' : 'bg-orange-500'
+                        category === '취약점 점검 보고서' ? 'bg-indigo-500' :
+                        category === '안전 점검 보고서' ? 'bg-emerald-500' :
+                        'bg-orange-500'
                       }`}></div>
                       {category}
                       <span className="text-xs font-bold text-slate-400 ml-1">({items.length}건)</span>
@@ -6227,11 +6497,6 @@ export default function App() {
     generateAllReportData(INITIAL_COMPLEX_LIST)
   );
   const [selectedReportComplexId, setSelectedReportComplexId] = useState(null);
-  const [complexMgmtData, setComplexMgmtData] = useState(() =>
-    generateAllComplexMgmtData(INITIAL_COMPLEX_LIST)
-  );
-  const [selectedComplexMgmtId, setSelectedComplexMgmtId] = useState(null);
-
   // 단지 추가 시 데이터 자동 생성
   useEffect(() => {
     setVulnerabilityData(prev => {
@@ -6247,11 +6512,6 @@ export default function App() {
     setReportData(prev => {
       const updated = { ...prev };
       complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateReportsForComplex(c.id, c.name); });
-      return updated;
-    });
-    setComplexMgmtData(prev => {
-      const updated = { ...prev };
-      complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateComplexMgmtDataForComplex(c.id); });
       return updated;
     });
   }, [complexList]);
@@ -6276,8 +6536,6 @@ export default function App() {
   useEffect(() => { if (selectedVulnComplexId) pushRecent(selectedVulnComplexId, 'vulnerability'); }, [selectedVulnComplexId]);
   useEffect(() => { if (selectedSafetyComplexId) pushRecent(selectedSafetyComplexId, 'safety_inspection'); }, [selectedSafetyComplexId]);
   useEffect(() => { if (selectedReportComplexId) pushRecent(selectedReportComplexId, 'report'); }, [selectedReportComplexId]);
-  useEffect(() => { if (selectedComplexMgmtId) pushRecent(selectedComplexMgmtId, 'complex_mgmt_report'); }, [selectedComplexMgmtId]);
-
   // 로그아웃 — 모든 상태 초기화
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -6293,11 +6551,9 @@ export default function App() {
     setVulnerabilityData(generateAllVulnerabilityData(INITIAL_COMPLEX_LIST));
     setSafetyInspectionData(generateAllSafetyInspectionData(INITIAL_COMPLEX_LIST));
     setReportData(generateAllReportData(INITIAL_COMPLEX_LIST));
-    setComplexMgmtData(generateAllComplexMgmtData(INITIAL_COMPLEX_LIST));
     setSelectedVulnComplexId(null);
     setSelectedSafetyComplexId(null);
     setSelectedReportComplexId(null);
-    setSelectedComplexMgmtId(null);
     setRecentHistory([]);
   };
 
@@ -6334,7 +6590,6 @@ export default function App() {
         setSelectedVulnComplexId(null);
         setSelectedSafetyComplexId(null);
         setSelectedReportComplexId(null);
-        setSelectedComplexMgmtId(null);
       }
     };
     window.addEventListener('popstate', handlePop);
@@ -6373,10 +6628,7 @@ export default function App() {
 
   const detailTabs = [
     { id: 'summary', label: '단지 요약', icon: LayoutDashboard },
-    { id: 'server', label: '단지서버', icon: Server },
-    { id: 'log_server', label: 'AXGATE SAFERHOME', icon: Archive },
-    { id: 'firewall', label: '방화벽', icon: Shield },
-    { id: 'network', label: '백본', icon: Network },
+    { id: 'vaccine', label: '백신', icon: ShieldCheck },
     { id: 'separation', label: '단지관리', icon: Activity },
     { id: 'separation_2', label: '단지관리 ADMIN', icon: Activity },
     { id: 'logs', label: '로그', icon: ScrollText },
@@ -6413,13 +6665,6 @@ export default function App() {
         }
         return '통합 보고서 센터';
       }
-      case 'complex_mgmt_report': {
-        if (selectedComplexMgmtId) {
-          const name = complexList.find(c => c.id === selectedComplexMgmtId)?.name || '';
-          return `${name} — 단지관리 운영점검`;
-        }
-        return '단지관리 운영점검';
-      }
       case 'account_management': return '계정 및 권한 관리';
       default: return '보안 관제 시스템';
     }
@@ -6432,7 +6677,6 @@ export default function App() {
   const managementItems = [
     { id: 'vulnerability', icon: AlertTriangle, label: '취약점 분석 및 조치', color: '#EF4444' },
     { id: 'safety_inspection', icon: ClipboardCheck, label: '홈네트워크 안전점검', color: '#EF4444' },
-    { id: 'complex_mgmt_report', icon: Activity, label: '단지관리 운영점검', color: '#EF4444' },
   ];
 
   const reportItems = [
@@ -6459,7 +6703,6 @@ export default function App() {
           if (menu.id === 'vulnerability') setSelectedVulnComplexId(currentId || null);
           if (menu.id === 'safety_inspection') setSelectedSafetyComplexId(currentId || null);
           if (menu.id === 'report') setSelectedReportComplexId(currentId || null);
-          if (menu.id === 'complex_mgmt_report') setSelectedComplexMgmtId(currentId || null);
         }}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150 outline-none text-left"
         style={{
@@ -6482,7 +6725,6 @@ export default function App() {
     vulnerability: { label: '취약점' },
     safety_inspection: { label: '안전점검' },
     report: { label: '보고서' },
-    complex_mgmt_report: { label: '단지관리' },
   };
 
   const filteredComplexes = sidebarComplexSearch.trim()
@@ -6496,7 +6738,7 @@ export default function App() {
     return (
       <div className="mt-1">
         {/* 단지 검색 — 항상 표시 */}
-        <div className="px-3 py-1.5 mb-1">
+        <div className="py-1.5 mb-1">
           <div className="relative">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#64748B' }} />
             <input
@@ -6548,29 +6790,45 @@ export default function App() {
         {/* 하위 탭 메뉴 — 단지 선택 시 항상 표시 */}
         {selectedComplexId && (
           <>
-            {/* 선택된 단지명 헤더 */}
-            <div className="flex items-center gap-2 px-3 py-2 mb-1">
-              <MapPin size={12} style={{ color: '#f97316', flexShrink: 0 }} />
-              <span className="text-[12px] font-bold truncate" style={{ color: '#FFFFFF' }}>
-                {selectedComplexData?.name || ''}
-              </span>
-              <button
-                onClick={() => {
-                  setActiveMenu('complex_list');
-                  setSelectedComplexId(null);
-                  setSelectedVulnComplexId(null);
-                  setSelectedSafetyComplexId(null);
-                  setSelectedReportComplexId(null);
-                  setSelectedComplexMgmtId(null);
-                }}
-                className="ml-auto p-1 rounded transition-colors"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
-                title="목록으로 돌아가기"
-              >
-                <ArrowLeft size={13} />
-              </button>
+            {/* 선택된 단지 카드 */}
+            <div className="mb-2 rounded-xl p-3" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#f97316' }}>
+                  <Building2 size={18} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[13px] font-bold text-white truncate leading-tight">{selectedComplexData?.name || ''}</p>
+                    <button
+                      onClick={() => {
+                        setActiveMenu('complex_list');
+                        setSelectedComplexId(null);
+                        setSelectedVulnComplexId(null);
+                        setSelectedSafetyComplexId(null);
+                        setSelectedReportComplexId(null);
+                      }}
+                      className="p-0.5 rounded-full transition-all shrink-0 ml-1"
+                      style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.15)' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+                      title="목록으로 돌아가기"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <MapPin size={10} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                    <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{selectedComplexData?.region || ''}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 mt-1.5">
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedComplexData?.status === '정상' ? '#10b981' : selectedComplexData?.status === '점검중' ? '#f59e0b' : '#64748b' }} />
+                      <span className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>상태: <span style={{ color: selectedComplexData?.status === '정상' ? '#6ee7b7' : selectedComplexData?.status === '점검중' ? '#fcd34d' : '#94a3b8' }}>{selectedComplexData?.status || ''}</span></span>
+                    </div>
+                    <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>총 {selectedComplexData?.dongCount || 0}동 / {selectedComplexData?.totalUnits || 0}세대</span>
+                  </div>
+                </div>
+              </div>
             </div>
             {/* 하위 탭 메뉴 */}
             {detailTabs.map(tab => {
@@ -6619,7 +6877,7 @@ export default function App() {
         <div className="h-16 flex items-center px-5 shrink-0" style={{ backgroundColor: '#152038', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div
             className="flex items-center gap-2.5 cursor-pointer select-none"
-            onClick={() => { setActiveMenu('complex_list'); setSelectedComplexId(null); setSelectedVulnComplexId(null); setSelectedSafetyComplexId(null); setSelectedReportComplexId(null); setSelectedComplexMgmtId(null); setResetKey(k => k + 1); }}
+            onClick={() => { setActiveMenu('complex_list'); setSelectedComplexId(null); setSelectedVulnComplexId(null); setSelectedSafetyComplexId(null); setSelectedReportComplexId(null); setResetKey(k => k + 1); }}
           >
             <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #2563EB, #1B2A4A)' }}>
               <Shield size={14} className="text-white" />
@@ -6672,7 +6930,6 @@ export default function App() {
                             if (selectedVulnComplexId === cId) setSelectedVulnComplexId(null);
                             if (selectedSafetyComplexId === cId) setSelectedSafetyComplexId(null);
                             if (selectedReportComplexId === cId) setSelectedReportComplexId(null);
-                            if (selectedComplexMgmtId === cId) setSelectedComplexMgmtId(null);
                           }}
                           className="ml-auto p-0.5 rounded opacity-0 group-hover/recent:opacity-100 transition-all shrink-0"
                           style={{ color: '#475569' }}
@@ -6695,7 +6952,6 @@ export default function App() {
                                 else if (v === 'vulnerability') { setSelectedVulnComplexId(cId); setActiveMenu('vulnerability'); }
                                 else if (v === 'safety_inspection') { setSelectedSafetyComplexId(cId); setActiveMenu('safety_inspection'); }
                                 else if (v === 'report') { setSelectedReportComplexId(cId); setActiveMenu('report'); }
-                                else if (v === 'complex_mgmt_report') { setSelectedComplexMgmtId(cId); setActiveMenu('complex_mgmt_report'); }
                               }}
                               className="px-2 py-0.5 rounded text-[9px] font-bold transition-all hover:opacity-80"
                               style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.65)' }}
@@ -6804,7 +7060,7 @@ export default function App() {
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar" style={{ backgroundColor: '#F8FAFC' }}>
           {activeMenu === 'complex_list' && <ComplexListDashboard key={resetKey} onNavigate={setActiveMenu} onSelectComplex={handleSelectComplex} complexList={complexList} setComplexList={setComplexList} />}
-          {activeMenu === 'complex_detail' && <ComplexDetailDashboard activeTab={activeDetailTab} onTabChange={setActiveDetailTab} onNavigate={(menu) => { setActiveMenu(menu); if (menu === 'complex_list') setSelectedComplexId(null); }} complexId={selectedComplexId} complexList={complexList} setComplexList={setComplexList} isMounted={isMounted} onLog={handleLogUpdate} terminalLogs={terminalLogs} />}
+          {activeMenu === 'complex_detail' && <ComplexDetailDashboard activeTab={activeDetailTab} onTabChange={setActiveDetailTab} onNavigate={(menu) => { setActiveMenu(menu); if (menu === 'complex_list') setSelectedComplexId(null); if (menu === 'report') setSelectedReportComplexId(selectedComplexId || null); if (menu === 'vulnerability') setSelectedVulnComplexId(selectedComplexId || null); if (menu === 'safety_inspection') setSelectedSafetyComplexId(selectedComplexId || null); }} complexId={selectedComplexId} complexList={complexList} setComplexList={setComplexList} isMounted={isMounted} onLog={handleLogUpdate} terminalLogs={terminalLogs} />}
           {activeMenu === 'vulnerability' && (
             <VulnerabilityDashboard
               onLog={handleLogUpdate}
@@ -6833,16 +7089,6 @@ export default function App() {
               onSelectComplex={setSelectedReportComplexId}
               isAdmin={isAdmin}
               onDataChange={(cId, list) => setReportData(prev => ({ ...prev, [cId]: list }))}
-            />
-          )}
-          {activeMenu === 'complex_mgmt_report' && (
-            <ComplexManagementReportDashboard
-              onLog={handleLogUpdate}
-              complexId={selectedComplexMgmtId}
-              complexList={complexList}
-              complexMgmtData={complexMgmtData}
-              onDataChange={(cId, list) => setComplexMgmtData(prev => ({ ...prev, [cId]: list }))}
-              onSelectComplex={setSelectedComplexMgmtId}
             />
           )}
           {activeMenu === 'account_management' && <AccountManagementDashboard onLog={handleLogUpdate} />}
