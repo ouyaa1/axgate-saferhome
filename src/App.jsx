@@ -1914,8 +1914,8 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
                 <div className="flex-1 flex flex-col gap-3 min-w-0">
                   {/* 시스템 헬스 스트립 */}
                   <div className="shrink-0">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">상태 정보</p>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                    <p className="text-[13px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2">상태 정보</p>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                       {[
                         { id: 'server', label: '단지서버', icon: Server, online: true },
                         { id: 'log_server', label: 'AXGATE SAFERHOME', icon: Archive, online: true },
@@ -1926,23 +1926,26 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
                         return (
                           <div
                             key={item.id}
-                            className="relative overflow-hidden rounded-lg px-2.5 py-1.5 text-left flex items-center gap-2 shadow-sm bg-white border border-slate-200"
+                            className="relative overflow-hidden rounded-xl px-4 pt-4 pb-3 text-left flex items-center gap-3 shadow-sm bg-white border border-slate-200"
                           >
-                            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-transform group-hover/hb:scale-110 bg-slate-100">
-                              <Icon size={12} className="text-slate-500" />
+                            <span className={`absolute left-0 right-0 top-0 h-1 ${item.online ? 'bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400' : 'bg-gradient-to-r from-red-400 via-red-500 to-red-400'}`}></span>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.online ? 'bg-blue-50' : 'bg-red-50'}`}>
+                              <Icon size={18} className={item.online ? 'text-blue-600' : 'text-red-500'} />
                             </div>
-                            <p className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex-1 min-w-0 truncate">{item.label}</p>
-                            <span className={`inline-flex items-center gap-1 shrink-0 ${item.online ? 'text-emerald-600' : 'text-slate-400'}`}>
-                              {item.online ? (
-                                <span className="relative flex w-1.5 h-1.5">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                </span>
-                              ) : (
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                              )}
-                              <span className="text-[9px] font-black">{item.online ? 'ON' : 'OFF'}</span>
-                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-black text-slate-800 tracking-tight truncate">{item.label}</p>
+                              <span className={`inline-flex items-center gap-1.5 mt-0.5 ${item.online ? 'text-blue-600' : 'text-red-500'}`}>
+                                {item.online ? (
+                                  <span className="relative flex w-2 h-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex w-2 h-2 rounded-full bg-blue-500"></span>
+                                  </span>
+                                ) : (
+                                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                )}
+                                <span className="text-[11px] font-black">{item.online ? '장비 구동중' : '장비 미가동'}</span>
+                              </span>
+                            </div>
                           </div>
                         );
                       })}
