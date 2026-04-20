@@ -13,11 +13,9 @@ import {
   generateAllVulnerabilityData,
   generateAllSafetyInspectionData,
   generateAllReportData,
-  generateAllComplexMgmtData,
   generateVulnerabilityDataForComplex,
   generateSafetyDataForComplex,
   generateReportsForComplex,
-  generateComplexMgmtDataForComplex,
 } from './constants/data';
 
 // --- Pages ---
@@ -28,7 +26,6 @@ import ComplexListDashboard from './dashboards/ComplexListDashboard';
 import ComplexDetailDashboard from './dashboards/ComplexDetailDashboard';
 import VulnerabilityDashboard from './dashboards/VulnerabilityDashboard';
 import SafetyInspectionDashboard from './dashboards/SafetyInspectionDashboard';
-import ComplexManagementReportDashboard from './dashboards/ComplexManagementReportDashboard';
 import ReportDashboard from './dashboards/ReportDashboard';
 import AccountManagementDashboard from './dashboards/AccountManagementDashboard';
 
@@ -80,11 +77,6 @@ export default function App() {
     generateAllReportData(INITIAL_COMPLEX_LIST)
   );
   const [selectedReportComplexId, setSelectedReportComplexId] = useState(null);
-  const [complexMgmtData, setComplexMgmtData] = useState(() =>
-    generateAllComplexMgmtData(INITIAL_COMPLEX_LIST)
-  );
-  const [selectedComplexMgmtId, setSelectedComplexMgmtId] = useState(null);
-
   // 단지 추가 시 데이터 자동 생성
   useEffect(() => {
     setVulnerabilityData(prev => {
@@ -100,11 +92,6 @@ export default function App() {
     setReportData(prev => {
       const updated = { ...prev };
       complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateReportsForComplex(c.id, c.name); });
-      return updated;
-    });
-    setComplexMgmtData(prev => {
-      const updated = { ...prev };
-      complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateComplexMgmtDataForComplex(c.id); });
       return updated;
     });
   }, [complexList]);
@@ -129,8 +116,6 @@ export default function App() {
   useEffect(() => { if (selectedVulnComplexId) pushRecent(selectedVulnComplexId, 'vulnerability'); }, [selectedVulnComplexId]);
   useEffect(() => { if (selectedSafetyComplexId) pushRecent(selectedSafetyComplexId, 'safety_inspection'); }, [selectedSafetyComplexId]);
   useEffect(() => { if (selectedReportComplexId) pushRecent(selectedReportComplexId, 'report'); }, [selectedReportComplexId]);
-  useEffect(() => { if (selectedComplexMgmtId) pushRecent(selectedComplexMgmtId, 'complex_mgmt_report'); }, [selectedComplexMgmtId]);
-
   // 로그아웃 — 모든 상태 초기화
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -146,11 +131,9 @@ export default function App() {
     setVulnerabilityData(generateAllVulnerabilityData(INITIAL_COMPLEX_LIST));
     setSafetyInspectionData(generateAllSafetyInspectionData(INITIAL_COMPLEX_LIST));
     setReportData(generateAllReportData(INITIAL_COMPLEX_LIST));
-    setComplexMgmtData(generateAllComplexMgmtData(INITIAL_COMPLEX_LIST));
     setSelectedVulnComplexId(null);
     setSelectedSafetyComplexId(null);
     setSelectedReportComplexId(null);
-    setSelectedComplexMgmtId(null);
     setRecentHistory([]);
   };
 
@@ -187,7 +170,6 @@ export default function App() {
         setSelectedVulnComplexId(null);
         setSelectedSafetyComplexId(null);
         setSelectedReportComplexId(null);
-        setSelectedComplexMgmtId(null);
       }
     };
     window.addEventListener('popstate', handlePop);
@@ -266,13 +248,6 @@ export default function App() {
         }
         return '통합 보고서 센터';
       }
-      case 'complex_mgmt_report': {
-        if (selectedComplexMgmtId) {
-          const name = complexList.find(c => c.id === selectedComplexMgmtId)?.name || '';
-          return `${name} — 단지관리 운영점검`;
-        }
-        return '단지관리 운영점검';
-      }
       case 'account_management': return '계정 및 권한 관리';
       default: return '보안 관제 시스템';
     }
@@ -285,7 +260,6 @@ export default function App() {
   const managementItems = [
     { id: 'vulnerability', icon: AlertTriangle, label: '취약점 분석 및 조치', color: '#EF4444' },
     { id: 'safety_inspection', icon: ClipboardCheck, label: '홈네트워크 안전점검', color: '#EF4444' },
-    { id: 'complex_mgmt_report', icon: Activity, label: '단지관리 운영점검', color: '#EF4444' },
   ];
 
   const reportItems = [
@@ -312,7 +286,6 @@ export default function App() {
           if (menu.id === 'vulnerability') setSelectedVulnComplexId(currentId || null);
           if (menu.id === 'safety_inspection') setSelectedSafetyComplexId(currentId || null);
           if (menu.id === 'report') setSelectedReportComplexId(currentId || null);
-          if (menu.id === 'complex_mgmt_report') setSelectedComplexMgmtId(currentId || null);
         }}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150 outline-none text-left"
         style={{
@@ -335,7 +308,6 @@ export default function App() {
     vulnerability: { label: '취약점' },
     safety_inspection: { label: '안전점검' },
     report: { label: '보고서' },
-    complex_mgmt_report: { label: '단지관리' },
   };
 
   const filteredComplexes = sidebarComplexSearch.trim()
@@ -414,7 +386,6 @@ export default function App() {
                   setSelectedVulnComplexId(null);
                   setSelectedSafetyComplexId(null);
                   setSelectedReportComplexId(null);
-                  setSelectedComplexMgmtId(null);
                 }}
                 className="ml-auto p-1 rounded transition-colors"
                 style={{ color: 'rgba(255,255,255,0.4)' }}
@@ -472,7 +443,7 @@ export default function App() {
         <div className="h-16 flex items-center px-5 shrink-0" style={{ backgroundColor: '#152038', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div
             className="flex items-center gap-2.5 cursor-pointer select-none"
-            onClick={() => { setActiveMenu('complex_list'); setSelectedComplexId(null); setSelectedVulnComplexId(null); setSelectedSafetyComplexId(null); setSelectedReportComplexId(null); setSelectedComplexMgmtId(null); setResetKey(k => k + 1); }}
+            onClick={() => { setActiveMenu('complex_list'); setSelectedComplexId(null); setSelectedVulnComplexId(null); setSelectedSafetyComplexId(null); setSelectedReportComplexId(null); setResetKey(k => k + 1); }}
           >
             <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #2563EB, #1B2A4A)' }}>
               <Shield size={14} className="text-white" />
@@ -525,7 +496,6 @@ export default function App() {
                             if (selectedVulnComplexId === cId) setSelectedVulnComplexId(null);
                             if (selectedSafetyComplexId === cId) setSelectedSafetyComplexId(null);
                             if (selectedReportComplexId === cId) setSelectedReportComplexId(null);
-                            if (selectedComplexMgmtId === cId) setSelectedComplexMgmtId(null);
                           }}
                           className="ml-auto p-0.5 rounded opacity-0 group-hover/recent:opacity-100 transition-all shrink-0"
                           style={{ color: '#475569' }}
@@ -548,7 +518,6 @@ export default function App() {
                                 else if (v === 'vulnerability') { setSelectedVulnComplexId(cId); setActiveMenu('vulnerability'); }
                                 else if (v === 'safety_inspection') { setSelectedSafetyComplexId(cId); setActiveMenu('safety_inspection'); }
                                 else if (v === 'report') { setSelectedReportComplexId(cId); setActiveMenu('report'); }
-                                else if (v === 'complex_mgmt_report') { setSelectedComplexMgmtId(cId); setActiveMenu('complex_mgmt_report'); }
                               }}
                               className="px-2 py-0.5 rounded text-[9px] font-bold transition-all hover:opacity-80"
                               style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.65)' }}
@@ -686,16 +655,6 @@ export default function App() {
               onSelectComplex={setSelectedReportComplexId}
               isAdmin={isAdmin}
               onDataChange={(cId, list) => setReportData(prev => ({ ...prev, [cId]: list }))}
-            />
-          )}
-          {activeMenu === 'complex_mgmt_report' && (
-            <ComplexManagementReportDashboard
-              onLog={handleLogUpdate}
-              complexId={selectedComplexMgmtId}
-              complexList={complexList}
-              complexMgmtData={complexMgmtData}
-              onDataChange={(cId, list) => setComplexMgmtData(prev => ({ ...prev, [cId]: list }))}
-              onSelectComplex={setSelectedComplexMgmtId}
             />
           )}
           {activeMenu === 'account_management' && <AccountManagementDashboard onLog={handleLogUpdate} />}
