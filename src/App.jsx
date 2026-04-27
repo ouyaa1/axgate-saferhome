@@ -176,40 +176,6 @@ const generateAllComplexMgmtData = (complexList) => {
   return data;
 };
 
-const REPORT_TYPES = ['취약점 점검 보고서', '안전 점검 보고서', '종합 점검 보고서'];
-const REPORT_AUTHORS = ['박신일', '장정구', '시스템', '김철수'];
-
-const generateReportsForComplex = (complexId, complexName) => {
-  let seed = 0;
-  for (let i = 0; i < complexId.length; i++) seed += complexId.charCodeAt(i);
-  const count = 5 + (seed % 6);
-  const reports = [];
-  for (let i = 0; i < count; i++) {
-    const v = (seed * (i + 1) * 7 + i * 13) % 100;
-    const typeIdx = (seed + i * 3) % REPORT_TYPES.length;
-    const authorIdx = (seed + i * 5) % REPORT_AUTHORS.length;
-    const day = String(28 - ((seed + i * 2) % 28)).padStart(2, '0');
-    const month = v < 50 ? '02' : '01';
-    const statusVal = v < 70 ? '완료' : v < 85 ? '점검중' : '대기';
-    reports.push({
-      id: `REP-${complexId}-${String(i + 1).padStart(2, '0')}`,
-      date: `2026-${month}-${day}`,
-      title: `${complexName} ${REPORT_TYPES[typeIdx]} 보고서 (${i + 1}차)`,
-      type: REPORT_TYPES[typeIdx],
-      author: REPORT_AUTHORS[authorIdx],
-      size: `${(1.0 + (v % 40) / 10).toFixed(1)} MB`,
-      status: statusVal,
-    });
-  }
-  return reports.sort((a, b) => b.date.localeCompare(a.date));
-};
-
-const generateAllReportData = (complexList) => {
-  const data = {};
-  complexList.forEach(c => { data[c.id] = generateReportsForComplex(c.id, c.name); });
-  return data;
-};
-
 // --- [공통 컴포넌트] ---
 const AxgateLogo = ({ onClick }) => (
   <div 
@@ -429,6 +395,109 @@ const ApprovalSystem = ({ approvals, setApprovals }) => {
         </div>
       )}
     </>
+  );
+};
+
+// --- [점검일자 선택 — 이전 점검일 표시 캘린더] ---
+const generatePastInspectionDates = (seedKey) => {
+  const seed = String(seedKey || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) || 7;
+  const today = new Date();
+  const dates = [];
+  for (let i = 1; i <= 6; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i * 2, 5 + ((seed * i) % 22));
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+};
+
+const InspectionDatePicker = ({ value, onChange, pastDates = [], accent = 'indigo' }) => {
+  const [open, setOpen] = useState(false);
+  const [viewMonth, setViewMonth] = useState(() => {
+    const base = value ? new Date(value) : new Date();
+    return new Date(base.getFullYear(), base.getMonth(), 1);
+  });
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    if (open) document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  const pastSet = useMemo(() => new Set(pastDates), [pastDates]);
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const todayStr = fmt(new Date());
+  const monthLabel = `${viewMonth.getFullYear()}년 ${viewMonth.getMonth()+1}월`;
+  const firstDay = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay();
+  const lastDate = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= lastDate; d++) cells.push(new Date(viewMonth.getFullYear(), viewMonth.getMonth(), d));
+  const accentText = accent === 'teal' ? 'text-teal-600' : accent === 'emerald' ? 'text-emerald-600' : 'text-indigo-600';
+  const accentBg = accent === 'teal' ? 'bg-teal-600' : accent === 'emerald' ? 'bg-emerald-600' : 'bg-indigo-600';
+  const accentRing = accent === 'teal' ? 'ring-teal-500' : accent === 'emerald' ? 'ring-emerald-500' : 'ring-indigo-500';
+  const pastTint = accent === 'teal' ? 'bg-teal-50 text-teal-700 border border-teal-200' : accent === 'emerald' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200';
+  const pastDotBg = accent === 'teal' ? 'bg-teal-500' : accent === 'emerald' ? 'bg-emerald-500' : 'bg-indigo-500';
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button type="button" onClick={() => setOpen(o => !o)} className={`font-bold text-slate-800 bg-transparent outline-none cursor-pointer hover:${accentText} transition-colors`}>
+        {value || '날짜 선택'}
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-2 z-50 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex items-center justify-between mb-3">
+            <button type="button" onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"><ChevronLeft size={16}/></button>
+            <span className="text-sm font-black text-slate-800">{monthLabel}</span>
+            <button type="button" onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"><ChevronRight size={16}/></button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {['일','월','화','수','목','금','토'].map((d, i) => (
+              <div key={d} className={`text-center text-[10px] font-black ${i===0?'text-rose-400':i===6?'text-blue-400':'text-slate-400'}`}>{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map((cell, i) => {
+              if (!cell) return <div key={`e-${i}`} />;
+              const ds = fmt(cell);
+              const isSelected = ds === value;
+              const isPast = pastSet.has(ds);
+              const isToday = ds === todayStr;
+              const dow = cell.getDay();
+              return (
+                <button
+                  type="button"
+                  key={ds}
+                  onClick={() => { onChange(ds); setOpen(false); }}
+                  className={`relative h-9 rounded-lg text-xs font-black transition-all ${
+                    isSelected ? `${accentBg} text-white shadow-md ring-2 ring-offset-1 ${accentRing}` :
+                    isPast ? `${pastTint} hover:brightness-95 shadow-sm` :
+                    isToday ? `bg-slate-100 text-slate-800 ring-1 ${accentRing}` :
+                    'hover:bg-slate-100 font-bold ' + (dow===0?'text-rose-500':dow===6?'text-blue-500':'text-slate-700')
+                  }`}
+                >
+                  {cell.getDate()}
+                  {isPast && !isSelected && (
+                    <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full ${pastDotBg} text-white flex items-center justify-center shadow-sm border border-white`}>
+                      <CheckCircle2 size={9} strokeWidth={3} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ${pastDotBg} text-white border border-white shadow-sm`}>
+                <CheckCircle2 size={9} strokeWidth={3} />
+              </span>
+              이전 점검일
+            </span>
+            <span className="text-slate-400">{pastDates.length}회 기록</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -721,6 +790,7 @@ const AddComplexModal = ({ onClose, onSave, initialData }) => {
     builderManager: '', builderContact: '',
     homenetManager: '', homenetContact: '',
     dongCount: 10, dongStartNum: 101, floorCount: 20, unitsPerFloor: 2,
+    dashboardUrl: '', webUiUrl: '',
   });
 
   const handleChange = (e) => {
@@ -865,6 +935,29 @@ const AddComplexModal = ({ onClose, onSave, initialData }) => {
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">홈넷사 연락처</label>
                   <input type="text" name="homenetContact" value={formData.homenetContact} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" placeholder="010-0000-0000" />
+                </div>
+              </div>
+            </div>
+
+            {/* 외부 연동 주소 */}
+            <div>
+              <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div> 외부 연동 주소
+              </h4>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1.5">
+                    <LayoutDashboard size={12} className="text-blue-500" /> 대시보드 주소
+                  </label>
+                  <input type="url" name="dashboardUrl" value={formData.dashboardUrl || ''} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono" placeholder="https://dashboard.example.com/" />
+                  <p className="text-[11px] text-slate-400 mt-1">단지관리 ADMIN 헤더의 "대시보드 바로가기"가 이 주소로 열립니다.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1.5">
+                    <Globe size={12} className="text-blue-500" /> WEB UI 주소
+                  </label>
+                  <input type="url" name="webUiUrl" value={formData.webUiUrl || ''} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono" placeholder="https://192.168.x.x/" />
+                  <p className="text-[11px] text-slate-400 mt-1">장비 Web UI 콘솔 주소. 미입력 시 버튼은 동작하지 않습니다.</p>
                 </div>
               </div>
             </div>
@@ -1870,6 +1963,27 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2 shrink-0">
+            {activeTab === 'separation_2' && (
+              <>
+                <button
+                  onClick={() => selectedData.dashboardUrl && window.open(selectedData.dashboardUrl, '_blank', 'noopener,noreferrer')}
+                  disabled={!selectedData.dashboardUrl}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-slate-200 disabled:hover:text-slate-500"
+                  title={selectedData.dashboardUrl || '단지 정보 수정에서 대시보드 주소를 등록하세요'}
+                >
+                  <LayoutDashboard size={14} /> 대시보드 바로가기
+                </button>
+                <button
+                  onClick={() => selectedData.webUiUrl && window.open(selectedData.webUiUrl, '_blank', 'noopener,noreferrer')}
+                  disabled={!selectedData.webUiUrl}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-slate-200 disabled:hover:text-slate-500"
+                  title={selectedData.webUiUrl || '단지 정보 수정에서 WEB UI 주소를 등록하세요'}
+                >
+                  <Globe size={14} /> WEB UI 바로가기
+                </button>
+                <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
+              </>
+            )}
             <button onClick={() => setShowEditModal(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition-all cursor-pointer">
               <Edit3 size={14} /> 단지 정보 수정
             </button>
@@ -2025,11 +2139,6 @@ const ComplexDetailDashboard = ({ activeTab, onTabChange, onNavigate, complexId,
                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
                   <FileSpreadsheet className="w-6 h-6 text-indigo-600" /> 단지별 보고서 발급 현황
                 </h3>
-                <div className="flex gap-2">
-                   <button onClick={() => onNavigate && onNavigate('report')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
-                     전체 이력 보기
-                   </button>
-                </div>
               </div>
               
               <div className="p-8">
@@ -2830,6 +2939,7 @@ const VulnerabilityDashboard = ({ onLog, complexId, complexList, vulnerabilityDa
   const [landingSearch, setLandingSearch] = useState('');
   const [landingView, setLandingView] = useState('grid');
   const [checkedIds, setCheckedIds] = useState([]);
+  const [pendingAction, setPendingAction] = useState(null); // 'save' | 'preview' | 'pdf' | null
 
   // 결재 상태 관리
   const [approvals, setApprovals] = useState([
@@ -2864,6 +2974,29 @@ const VulnerabilityDashboard = ({ onLog, complexId, complexList, vulnerabilityDa
     const updated = checklist.map(item => item.id === id ? { ...item, note: newNote } : item);
     setChecklist(updated);
     if (complexId && onDataChange) onDataChange(complexId, updated);
+  };
+
+  const getIncompleteItems = () => {
+    return checklist.filter(item => {
+      if (!item.result || item.result === '') return true;
+      if (item.result === '수동점검') return true;
+      const noteEmpty = !item.note || item.note === '-' || String(item.note).trim() === '';
+      if (item.result === '취약' && noteEmpty) return true;
+      return false;
+    });
+  };
+
+  const runAction = (action) => {
+    if (action === 'save') onLog && onLog('[VULNERABILITY] 점검 결과가 저장되었습니다.');
+    else if (action === 'preview' || action === 'pdf') setShowPreview(true);
+  };
+
+  const handleAttemptAction = (action) => {
+    if (getIncompleteItems().length > 0) {
+      setPendingAction(action);
+    } else {
+      runAction(action);
+    }
   };
 
   // --- 랜딩 모드 (단지 미선택) ---
@@ -3050,6 +3183,119 @@ const VulnerabilityDashboard = ({ onLog, complexId, complexList, vulnerabilityDa
         />
       )}
 
+      {pendingAction && (() => {
+        const incomplete = getIncompleteItems();
+        const actionLabel = pendingAction === 'save' ? '결과 저장' : pendingAction === 'preview' ? '미리보기' : 'PDF 다운로드';
+        const allResolved = incomplete.length === 0;
+        return (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setPendingAction(null)} />
+            <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-200 overflow-hidden flex flex-col max-h-[88vh]">
+              <div className="px-8 py-6 border-b border-slate-100 bg-amber-50/60 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-amber-100 text-amber-600 shadow-inner">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-800">미완료 항목이 있습니다</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">"{actionLabel}" 진행 전에 아래 항목을 채워주세요. 양호로 변경하거나, 취약 사유 / 수동점검 결과를 입력하세요.</p>
+                  </div>
+                </div>
+                <button onClick={() => setPendingAction(null)} className="p-2 hover:bg-amber-100 rounded-full text-slate-400 transition-colors"><X size={18} /></button>
+              </div>
+
+              <div className="px-6 py-3 bg-slate-50/60 border-b border-slate-100 flex items-center gap-3 text-[11px] font-bold text-slate-500 shrink-0">
+                <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg">총 미완료 <span className="text-amber-600">{incomplete.length}</span>건</span>
+                <span className="text-slate-300">•</span>
+                <span>수동점검 {checklist.filter(i => i.result === '수동점검').length}건</span>
+                <span>취약 사유 미기입 {checklist.filter(i => i.result === '취약' && (!i.note || i.note === '-' || String(i.note).trim() === '')).length}건</span>
+              </div>
+
+              <div className="overflow-y-auto flex-1 p-6 space-y-3 custom-scrollbar">
+                {allResolved ? (
+                  <div className="text-center py-12">
+                    <CheckCircle2 size={40} className="mx-auto text-emerald-500 mb-3" />
+                    <p className="text-sm font-bold text-slate-700">모든 항목이 채워졌습니다.</p>
+                    <p className="text-xs text-slate-400 mt-1">아래 "{actionLabel} 진행" 버튼을 눌러 계속하세요.</p>
+                  </div>
+                ) : incomplete.map(item => {
+                  const noteEmpty = !item.note || item.note === '-' || String(item.note).trim() === '';
+                  return (
+                    <div key={item.id} className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-amber-300 transition-colors">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <span className="text-[10px] font-mono font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md shrink-0">{item.id}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-800">{item.item}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">{item.category}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${
+                          item.result === '수동점검' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                          item.result === '취약' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                          'bg-slate-100 text-slate-500'
+                        }`}>
+                          {item.result === '수동점검' ? '수동점검 필요' : item.result === '취약' && noteEmpty ? '사유 미기입' : item.result || '미기입'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="sm:col-span-1">
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">점검 결과</label>
+                          <select
+                            value={item.result || ''}
+                            onChange={(e) => handleResultChange(item.id, e.target.value)}
+                            className={`w-full bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-400 cursor-pointer transition-colors ${
+                              item.result === '양호' ? 'text-emerald-600' :
+                              item.result === '취약' ? 'text-rose-600' :
+                              'text-blue-600'
+                            }`}
+                          >
+                            <option value="" disabled>선택</option>
+                            <option value="양호" className="text-emerald-600">양호</option>
+                            <option value="취약" className="text-rose-600">취약</option>
+                            <option value="수동점검" className="text-blue-600">수동점검</option>
+                          </select>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                            비고 / 조치 사유 {item.result === '취약' && <span className="text-rose-500">*</span>}
+                          </label>
+                          <input
+                            type="text"
+                            value={item.note === '-' ? '' : (item.note || '')}
+                            onChange={(e) => handleNoteChange(item.id, e.target.value === '' ? '-' : e.target.value)}
+                            placeholder={item.result === '수동점검' ? '수동 확인 결과를 입력하세요' : item.result === '취약' ? '취약 원인 및 조치 계획을 입력하세요' : '특이사항 입력...'}
+                            className="w-full bg-slate-50 border border-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-400 transition-colors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="px-8 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+                <p className="text-[11px] text-slate-400">
+                  변경 내용은 즉시 저장됩니다.
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setPendingAction(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                    닫기
+                  </button>
+                  <button
+                    onClick={() => { const action = pendingAction; setPendingAction(null); runAction(action); }}
+                    disabled={!allResolved}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 size={14} /> {actionLabel} 진행
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* 단지 정보 바 */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-4">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#f97316' }}>
@@ -3092,7 +3338,45 @@ const VulnerabilityDashboard = ({ onLog, complexId, complexList, vulnerabilityDa
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><CalendarDays className="w-6 h-6" /></div>
-              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">점검 일자</p><input type="date" value={inspectDate} onChange={(e) => setInspectDate(e.target.value)} className="font-bold text-slate-800 bg-transparent outline-none cursor-pointer hover:text-indigo-600 transition-colors" /></div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">점검 일자</p>
+                {(() => {
+                  const past = generatePastInspectionDates(`vuln-${complexId}`);
+                  const sorted = [...past].sort();
+                  const earlier = sorted.filter(d => d < inspectDate);
+                  const later = sorted.filter(d => d > inspectDate);
+                  const goPrev = () => { if (earlier.length) setInspectDate(earlier[earlier.length - 1]); };
+                  const goNext = () => { if (later.length) setInspectDate(later[0]); };
+                  return (
+                    <div className="flex items-center gap-0.5 -ml-1">
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        disabled={!earlier.length}
+                        className="p-0.5 rounded text-slate-300 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        title={earlier.length ? `이전 점검일 (${earlier[earlier.length - 1]})` : '더 이전 점검 기록 없음'}
+                      >
+                        <ChevronLeft size={16} strokeWidth={2.5}/>
+                      </button>
+                      <InspectionDatePicker
+                        value={inspectDate}
+                        onChange={setInspectDate}
+                        pastDates={sorted}
+                        accent="indigo"
+                      />
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        disabled={!later.length}
+                        className="p-0.5 rounded text-slate-300 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        title={later.length ? `다음 점검일 (${later[0]})` : '더 최근 점검 기록 없음'}
+                      >
+                        <ChevronRight size={16} strokeWidth={2.5}/>
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
             <div className="h-10 w-px bg-slate-100"></div>
             <div className="flex items-center gap-3">
@@ -3110,13 +3394,13 @@ const VulnerabilityDashboard = ({ onLog, complexId, complexList, vulnerabilityDa
               <AlertTriangle className="w-6 h-6 text-indigo-600" /> 단지서버 보안 취약점 점검 리스트
             </h3>
             <div className="flex gap-2">
-              <button onClick={() => onLog && onLog('[VULNERABILITY] 점검 결과가 저장되었습니다.')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
+              <button onClick={() => handleAttemptAction('save')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
                 <CheckSquare className="w-4 h-4" /> 결과 저장
               </button>
-              <button onClick={() => setShowPreview(true)} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm flex items-center gap-2">
+              <button onClick={() => handleAttemptAction('preview')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm flex items-center gap-2">
                 <Eye className="w-4 h-4" /> 미리보기
               </button>
-              <button onClick={() => setShowPreview(true)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md flex items-center gap-2">
+              <button onClick={() => handleAttemptAction('pdf')} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md flex items-center gap-2">
                 <Download className="w-4 h-4" /> PDF 다운로드
               </button>
             </div>
@@ -3387,25 +3671,15 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
     const d = generateHighRiseDevices(complexConfig || {});
     return generateInitialHistory(d);
   });
-  const [viewMode, setViewMode] = useState('complex'); 
+  const [viewMode, setViewMode] = useState('complex');
+  const [buildingOrigin, setBuildingOrigin] = useState('complex');
   const [selectedDong, setSelectedDong] = useState(null);
   const [activeTab, setActiveTab] = useState('grid'); 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
   const [terminalLogs, setTerminalLogs] = useState(['[SYSTEM] AXGATE 안전홈관리 시스템 가동 시작...', '[INFO] 보안 모듈 로드 완료.']);
-  const [command, setCommand] = useState('');
   
-  const firstDong = `${(complexConfig?.dongStartNum || 101)}동`;
-  const firstUnit = `${firstDong} 101호`;
 
-  const [batchScopeType, setBatchScopeType] = useState('all');
-  const [batchScopeDong, setBatchScopeDong] = useState(firstDong);
-  const [batchScopeUnit, setBatchScopeUnit] = useState(firstUnit);
-
-  const [reportType, setReportType] = useState('complex');
-  const [reportTargetDong, setReportTargetDong] = useState(firstDong);
-  const [reportTargetUnit, setReportTargetUnit] = useState(firstUnit);
-  const [scheduleType, setScheduleType] = useState('none'); 
   const [showUnitReportModal, setShowUnitReportModal] = useState(false);
   const [showFailureListModal, setShowFailureListModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false); 
@@ -3427,9 +3701,6 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
 
   // 문의내역 상태 관리 (관리자용)
   const [inquiries, setInquiries] = useState(INITIAL_INQUIRIES);
-
-  // 퀵 컨트롤 확인 모달 상태
-  const [quickControlAction, setQuickControlAction] = useState(null); // 'start' | 'stop' | null
 
   // 세대 보고서 렌더링용 상태 및 헬퍼 함수
   const [showReportPreview, setShowReportPreview] = useState(false);
@@ -3521,25 +3792,6 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
     }
   }, [selectedDeviceId]);
 
-  useEffect(() => {
-    if (selectedDeviceId) {
-      const device = devices.find(d => d.id === selectedDeviceId);
-      if (device) {
-        setBatchScopeType('unit');
-        setBatchScopeDong(device.dong);
-        setBatchScopeUnit(device.unit);
-      }
-    } else if (selectedDong) {
-      setBatchScopeType('dong');
-      setBatchScopeDong(selectedDong);
-      setBatchScopeUnit('');
-    } else {
-      setBatchScopeType('all');
-      setBatchScopeDong(firstDong);
-      setBatchScopeUnit('');
-    }
-  }, [selectedDeviceId, selectedDong, devices]);
-
   const stats = useMemo(() => {
     const normal = devices.filter(d => d.status === 'normal').length;
     const error = devices.filter(d => d.status === 'error').length;
@@ -3560,6 +3812,20 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
         units: devices.filter(d => d.dong === selectedDong && d.floor === f).sort((a, b) => a.room - b.room)
       }));
   }, [devices, selectedDong]);
+
+  const allBuildingsData = useMemo(() => {
+    return uniqueDongs.map(dong => {
+      const floors = [...new Set(devices.filter(d => d.dong === dong).map(d => d.floor))]
+        .sort((a, b) => b - a)
+        .map(f => ({
+          floor: f,
+          units: devices.filter(d => d.dong === dong && d.floor === f).sort((a, b) => a.room - b.room)
+        }));
+      const errorCount = devices.filter(d => d.dong === dong && d.status === 'error').length;
+      const totalCount = devices.filter(d => d.dong === dong).length;
+      return { dong, floors, errorCount, totalCount };
+    });
+  }, [devices, uniqueDongs]);
 
   const nodeHistory = useMemo(() => {
     if (!selectedDevice) return [];
@@ -3645,14 +3911,16 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
   };
 
   const returnToComplex = () => {
-    setViewMode('complex');
+    const target = buildingOrigin === 'allBuildings' ? 'allBuildings' : 'complex';
+    setViewMode(target);
     setSelectedDong(null);
     setSelectedDeviceId(null);
     setActiveTab('grid');
-    setTerminalLogs(prev => [...prev, `[NAV] 단지 전체 배치도로 복귀.`]);
+    setTerminalLogs(prev => [...prev, `[NAV] ${target === 'allBuildings' ? '전체 동 펼치기' : '단지 전체 배치도'}로 복귀.`]);
   };
 
   const enterBuilding = (dongName) => {
+    if (viewMode === 'complex' || viewMode === 'allBuildings') setBuildingOrigin(viewMode);
     setSelectedDong(String(dongName));
     setViewMode('building');
     setSelectedDeviceId(null);
@@ -3673,16 +3941,6 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
       return d;
     }));
     setTerminalLogs(prev => [...prev, `[CMD] Power toggle signal sent.`]);
-  };
-
-  const handleCommandSubmit = (e) => {
-    e.preventDefault();
-    if (!command.trim()) return;
-    let target = '전체 단지';
-    if (batchScopeType === 'dong') target = `${batchScopeDong}`;
-    if (batchScopeType === 'unit') target = `${batchScopeDong} ${batchScopeUnit}호`;
-    setTerminalLogs(prev => [...prev, `> [통합 명령] 대상: ${target} / 명령: ${command}`, '[SYS] 명령어가 대기열에 추가되었습니다.']);
-    setCommand('');
   };
 
   const handleImageUpload = (e) => {
@@ -3706,17 +3964,6 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
       }
       setSelectedDeviceId(device.id);
     }
-  };
-
-  const executeQuickControl = () => {
-    if (quickControlAction === 'start') {
-      setDevices(p => p.map(d => ({...d, status: 'normal', errorType: null})));
-      setTerminalLogs(p => [...p, '> [ADMIN] 전체 시스템 일괄 기동 명령이 정상적으로 실행되었습니다.']);
-    } else if (quickControlAction === 'stop') {
-      setDevices(p => p.map(d => ({...d, status: 'error', errorType: '시스템 일괄 중단'})));
-      setTerminalLogs(p => [...p, '> [ADMIN] 주의: 전체 시스템 일괄 중단 명령이 실행되었습니다.']);
-    }
-    setQuickControlAction(null);
   };
 
   const handleDeviceRegister = () => {
@@ -3811,34 +4058,6 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
             { label: '펌웨어 버전', value: selectedDevice.osVersion }
           ]}
         />
-      )}
-
-      {/* 퀵 컨트롤 확인 모달 */}
-      {quickControlAction && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setQuickControlAction(null)} />
-          <div className="relative w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-100 flex flex-col">
-            <div className="flex flex-col items-center text-center mb-8 mt-2">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 shadow-inner ${quickControlAction === 'start' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                {quickControlAction === 'start' ? <Zap size={32} /> : <ShieldAlert size={32} />}
-              </div>
-              <h2 className="text-xl font-bold text-slate-800">
-                {quickControlAction === 'start' ? '전체 단말 일괄 기동' : '전체 단말 강제 중단'}
-              </h2>
-              <p className="text-sm text-slate-500 mt-3 leading-relaxed">
-                {quickControlAction === 'start' 
-                  ? '단지 내 전체 망분리 세대 장비를 일괄적으로 정상 가동 상태로 전환하시겠습니까?' 
-                  : <span className="text-rose-600 font-bold">주의: 단지 내 전체 망분리 세대 장비의 통신을 강제로 중단합니다.<br/>이 작업은 세대 내 서비스 장애를 유발할 수 있습니다.</span>}
-              </p>
-            </div>
-            <div className="flex gap-3 w-full">
-              <button onClick={() => setQuickControlAction(null)} className="flex-1 py-3.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">취소</button>
-              <button onClick={executeQuickControl} className={`flex-1 py-3.5 rounded-xl text-sm font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 ${quickControlAction === 'start' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-200'}`}>
-                {quickControlAction === 'start' ? <><Zap size={16}/> 기동 실행</> : <><ShieldAlert size={16}/> 중단 실행</>}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* 공지사항 등록/수정 모달 */}
@@ -4093,20 +4312,19 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
             <nav className="flex items-center bg-slate-100 p-1.5 rounded-2xl shadow-inner shrink-0">
               {[
                 { id: 'grid', icon: MapIcon, label: '실시간 관제' },
-                { id: 'history', icon: HistoryIcon, label: '장애 이력' },
-                { id: 'report', icon: FileText, label: '보고서 센터' }
+                { id: 'history', icon: HistoryIcon, label: '장애 이력' }
               ].map(tab => (
-                <button 
+                <button
                   key={tab.id}
-                  onClick={() => { setActiveTab(tab.id); if(tab.id === 'grid') returnToComplex(); }} 
+                  onClick={() => { setActiveTab(tab.id); if(tab.id === 'grid') returnToComplex(); }}
                   className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id ? 'bg-white text-indigo-600 shadow-md transform scale-105' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   <tab.icon size={16} /> {tab.label}
                 </button>
               ))}
               <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
-              <button 
-                onClick={() => setShowFeedbackModal(true)} 
+              <button
+                onClick={() => setShowFeedbackModal(true)}
                 className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-slate-500 hover:text-indigo-600 transition-all hover:bg-white hover:shadow-sm"
               >
                 {isAdmin ? <MessageSquarePlus size={16} /> : <MessageCircle size={16} />}
@@ -4117,13 +4335,13 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
         </header>
 
         {/* --- Main Grid --- */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-[900px]">
-          
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-[640px]">
+
           {/* Left Panel: Map & Console */}
           <div className="xl:col-span-8 flex flex-col gap-6 h-full">
-            
+
             {/* Visualizer Container */}
-            <div className="flex-1 bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden flex flex-col relative group min-h-[600px]">
+            <div className="flex-1 bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden flex flex-col relative group min-h-[420px]">
               
               {/* Toolbar */}
               <div className="absolute top-6 left-6 right-6 z-20 flex justify-between items-start pointer-events-none">
@@ -4135,33 +4353,122 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
                   )}
                   <div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-slate-100 text-sm font-bold text-slate-600 flex items-center gap-2">
                     <Globe size={16} className="text-indigo-500"/>
-                    {viewMode === 'complex' ? '단지 전체 배치도' : `${selectedDong} 상세 관제`}
+                    {viewMode === 'complex' ? '단지 전체 배치도' : viewMode === 'allBuildings' ? '전체 동 상세 관제' : `${selectedDong} 상세 관제`}
                     {!isAdmin && <span className="ml-2 px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] rounded">읽기 전용</span>}
                     {isAdmin && <span className="ml-2 px-2 py-0.5 bg-rose-100 text-rose-600 text-[10px] rounded">최고 권한</span>}
                   </div>
+                  {viewMode !== 'building' && (
+                    <button
+                      onClick={() => {
+                        const next = viewMode === 'allBuildings' ? 'complex' : 'allBuildings';
+                        setViewMode(next);
+                        setSelectedDong(null);
+                        setSelectedDeviceId(null);
+                        setTerminalLogs(p => [...p, `[NAV] ${next === 'allBuildings' ? '전체 동 상세 펼침' : '단지 배치도'} 모드로 전환`]);
+                      }}
+                      className="bg-white/90 backdrop-blur-md px-3.5 py-2.5 rounded-2xl shadow-lg border border-slate-100 hover:border-indigo-300 hover:text-indigo-600 transition-all text-xs font-bold text-slate-600 flex items-center gap-1.5"
+                      title={viewMode === 'allBuildings' ? '단지 배치도로 돌아가기' : '전체 동을 한 화면에 펼치기'}
+                    >
+                      {viewMode === 'allBuildings'
+                        ? <><MapIcon size={14}/> 배치도 보기</>
+                        : <><Grid3X3 size={14}/> 전체 동 펼치기</>}
+                    </button>
+                  )}
                 </div>
                 
-                {/* 관리자에게만 퀵 컨트롤(전체 기동/중단) 버튼 노출 */}
-                {isAdmin && (
-                  <div className="pointer-events-auto bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-lg border border-slate-100 items-center gap-2 hidden md:flex">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase px-2">Quick Control</span>
-                    <button onClick={() => setQuickControlAction('start')} className="px-3 py-1.5 hover:bg-emerald-50 text-emerald-600 rounded-xl transition-colors flex items-center gap-1 text-xs font-bold" title="전체 기동">
-                      <Zap size={14}/> 기동
-                    </button>
-                    <button onClick={() => setQuickControlAction('stop')} className="px-3 py-1.5 hover:bg-rose-50 text-rose-600 rounded-xl transition-colors flex items-center gap-1 text-xs font-bold" title="전체 중단">
-                      <ShieldAlert size={14}/> 중단
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* Map Content */}
-              <div 
-                className="flex-1 bg-slate-50/50 relative overflow-hidden min-h-[400px]" 
-                onMouseMove={handleContainerMouseMove} 
+              <div
+                className="flex-1 bg-slate-50/50 relative overflow-hidden min-h-[280px]"
+                onMouseMove={handleContainerMouseMove}
                 onMouseUp={handleContainerMouseUp}
               >
-                {activeTab === 'grid' && (
+                {activeTab === 'grid' && viewMode === 'allBuildings' && (
+                  <div className="absolute inset-0 overflow-auto p-6 sm:p-8 scrollbar-thin scrollbar-thumb-slate-200 bg-gradient-to-b from-slate-50 to-white">
+                    {/* 범례 */}
+                    <div className="sticky top-0 z-10 mb-5 flex flex-wrap items-center gap-3 px-4 py-2.5 bg-white/90 backdrop-blur-md border border-slate-200 rounded-2xl shadow-sm w-fit">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">범례</span>
+                      <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-400"/> 정상</span>
+                      <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600"><span className="w-2.5 h-2.5 rounded-sm bg-rose-500 animate-pulse"/> 장애</span>
+                      <span className="text-[10px] text-slate-400 ml-1">셀 클릭 → 상세 / 동명 클릭 → 단일 동 진입</span>
+                    </div>
+                    <div className="flex flex-wrap gap-5 items-end justify-center">
+                      {allBuildingsData.map(b => {
+                        const maxUnits = Math.max(...b.floors.map(f => f.units.length), 1);
+                        return (
+                          <div key={b.dong} className="flex flex-col items-center group/tower">
+                            {/* 건물 옥상 — 동 라벨 + 상태 */}
+                            <button
+                              onClick={() => enterBuilding(b.dong)}
+                              className={`relative flex flex-col items-center px-3 pt-2 pb-1.5 rounded-t-2xl border-b-0 transition-all min-w-[88px] ${
+                                b.errorCount > 0
+                                  ? 'bg-gradient-to-b from-rose-500 to-rose-600 border border-rose-700 shadow-lg shadow-rose-500/30'
+                                  : 'bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-900 shadow-lg shadow-slate-900/20'
+                              } group-hover/tower:-translate-y-0.5`}
+                              title={`${b.dong} 단일 상세 진입`}
+                            >
+                              <span className="text-[10px] font-black text-white/70 uppercase tracking-widest leading-none">동</span>
+                              <span className="text-base font-black text-white leading-tight">{String(b.dong).replace('동','')}</span>
+                              {b.errorCount > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-white text-rose-600 w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black border-2 border-rose-500 shadow-md">
+                                  {b.errorCount}
+                                </span>
+                              )}
+                            </button>
+
+                            {/* 건물 본체 — 층 스택 */}
+                            <div className={`flex flex-col rounded-b-md overflow-hidden border ${b.errorCount > 0 ? 'border-rose-200' : 'border-slate-200'} bg-white shadow-md`}>
+                              {b.floors.map((floor, idx) => (
+                                <div
+                                  key={floor.floor}
+                                  className={`flex items-stretch ${idx !== b.floors.length - 1 ? 'border-b border-slate-100' : ''}`}
+                                >
+                                  <div className="w-7 shrink-0 flex items-center justify-center bg-slate-50 border-r border-slate-100 font-mono text-[9px] font-black text-slate-400">
+                                    {String(floor.floor)}
+                                  </div>
+                                  <div className="flex gap-px p-px">
+                                    {floor.units.map(unit => {
+                                      const isSelected = selectedDeviceId === unit.id;
+                                      const isErr = unit.status === 'error';
+                                      return (
+                                        <button
+                                          key={unit.id}
+                                          onClick={() => { setSelectedDong(unit.dong); setSelectedDeviceId(unit.id); }}
+                                          className={`w-5 h-5 rounded-sm transition-all relative ${
+                                            isSelected
+                                              ? 'ring-2 ring-indigo-500 ring-offset-1 z-10 scale-110'
+                                              : isErr
+                                                ? 'bg-rose-500 hover:bg-rose-600 animate-pulse'
+                                                : 'bg-emerald-300 hover:bg-emerald-500'
+                                          } ${isSelected ? (isErr ? 'bg-rose-500' : 'bg-emerald-400') : ''}`}
+                                          title={`${unit.unit}${isErr ? ' — ' + unit.errorType : ' — 정상'}`}
+                                        />
+                                      );
+                                    })}
+                                    {/* 빈 자리 패딩으로 폭 통일 */}
+                                    {Array.from({ length: maxUnits - floor.units.length }).map((_, i) => (
+                                      <div key={`pad-${i}`} className="w-5 h-5" />
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* 건물 푸터 — 통계 */}
+                            <div className={`mt-2 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 ${
+                              b.errorCount > 0 ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                            }`}>
+                              {b.errorCount > 0 ? <><AlertCircle size={11}/> {b.errorCount}/{b.totalCount}</> : <><CheckCircle2 size={11}/> {b.totalCount}세대</>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'grid' && viewMode !== 'allBuildings' && (
                   viewMode === 'complex' ? (
                     <div ref={mapContainerRef} className="absolute inset-0 flex items-center justify-center p-8">
                         <div className="relative w-full h-full max-w-5xl bg-white rounded-[3rem] shadow-xl overflow-hidden border border-slate-200">
@@ -4294,216 +4601,14 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
                   </div>
                 )}
 
-                {/* Report Center with Select Inputs */}
-                {activeTab === 'report' && (
-                  <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-12 bg-slate-50/50 overflow-y-auto">
-                     <div className="bg-white p-6 sm:p-12 rounded-[2.5rem] shadow-xl border border-slate-100 text-center max-w-4xl w-full">
-                        <FileText size={64} className="text-indigo-200 mx-auto mb-6" />
-                        <h3 className="text-2xl font-bold text-slate-800">통합 보고서 센터</h3>
-                        <p className="text-sm text-slate-400 mb-10 mt-2">장애 리포트 발송 (즉시/예약) 및 수동 내보내기</p>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                           {/* 자동 발송 섹션 */}
-                           <div className="bg-slate-50 p-6 sm:p-8 rounded-3xl border border-slate-100 space-y-6">
-                              <h4 className="text-sm font-bold text-indigo-600 flex items-center gap-2"><Mail size={16}/> 장애 리포트 발송</h4>
-                              
-                              <div className="space-y-4">
-                                <div className="space-y-2">
-                                  <label className="text-xs font-bold text-slate-500">발송 범위</label>
-                                  <div className="grid grid-cols-3 gap-2">
-                                    {['complex', 'dong', 'unit'].map(type => (
-                                      <button key={type} onClick={() => setReportType(type)} className={`py-2 rounded-xl text-xs font-bold transition-all ${reportType === type ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500'}`}>
-                                        {type === 'complex' ? '단지전체' : type === 'dong' ? '동별' : '세대별'}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  
-                                  {/* Select for Dong/Unit */}
-                                  <div className="flex gap-2 mt-2">
-                                    {reportType !== 'complex' && (
-                                      <select 
-                                        className="w-full bg-white border border-slate-200 text-xs text-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-                                        value={reportTargetDong}
-                                        onChange={(e) => setReportTargetDong(e.target.value)}
-                                      >
-                                        {uniqueDongs.map(d => <option key={d} value={d}>{d}</option>)}
-                                      </select>
-                                    )}
-                                    {reportType === 'unit' && (
-                                      <select 
-                                        className="w-full bg-white border border-slate-200 text-xs text-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-                                        value={reportTargetUnit}
-                                        onChange={(e) => setReportTargetUnit(e.target.value)}
-                                      >
-                                        <option value="">호수 선택</option>
-                                        {getUnitsByDong(reportTargetDong).map(u => (
-                                          <option key={u} value={u}>{u.split(' ')[1]}</option>
-                                        ))}
-                                      </select>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                  <label className="text-xs font-bold text-slate-500">예약 발송 주기</label>
-                                  <div className="grid grid-cols-4 gap-2">
-                                    {[{id: 'none', lbl: '안함'}, {id: 'daily', lbl: '매일'}, {id: 'weekly', lbl: '매주'}, {id: 'monthly', lbl: '매월'}].map(s => (
-                                      <button key={s.id} onClick={() => setScheduleType(s.id)} className={`py-2 rounded-xl text-xs font-bold transition-all ${scheduleType === s.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500'}`}>
-                                        {s.lbl}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label className="text-xs font-bold text-slate-500 block mb-2">수신 이메일</label>
-                                  <input type="email" value={emailConfig.address} onChange={(e) => setEmailConfig({...emailConfig, address: e.target.value})} className="w-full bg-white px-4 py-3 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-indigo-200 outline-none" />
-                                </div>
-
-                                <div className="pt-2">
-                                  <button onClick={() => { setTerminalLogs(p => [...p, `[REPORT] 장애 리포트가 ${emailConfig.address}로 즉시 발송되었습니다.`]); }} className="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all flex items-center justify-center gap-2">
-                                    <Send size={14}/> 이메일 즉시 발송
-                                  </button>
-                                </div>
-                              </div>
-                           </div>
-
-                           {/* 수동 내보내기 섹션 */}
-                           <div className="bg-slate-50 p-6 sm:p-8 rounded-3xl border border-slate-100 space-y-6">
-                              <h4 className="text-sm font-bold text-emerald-600 flex items-center gap-2"><Download size={16}/> 리포트 수동 다운로드</h4>
-                              <div className="space-y-3">
-                                <button className="w-full flex items-center justify-between px-6 py-4 bg-white rounded-2xl border border-slate-200 text-xs font-bold hover:border-emerald-500 hover:shadow-md transition-all group">
-                                  <span>Excel 형식 다운로드</span> <FileSpreadsheet size={20} className="text-slate-400 group-hover:text-emerald-500"/>
-                                </button>
-                                <button className="w-full flex items-center justify-between px-6 py-4 bg-white rounded-2xl border border-slate-200 text-xs font-bold hover:border-red-500 hover:shadow-md transition-all group">
-                                  <span>PDF 형식 다운로드</span> <FileDown size={20} className="text-slate-400 group-hover:text-red-500"/>
-                                </button>
-                                <button className="w-full flex items-center justify-between px-6 py-4 bg-white rounded-2xl border border-slate-200 text-xs font-bold hover:border-blue-600 hover:shadow-md transition-all group">
-                                  <span>Word 형식 다운로드</span> <FileText size={20} className="text-slate-400 group-hover:text-blue-600"/>
-                                </button>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Console - Dropdown Inputs : 관리자(Admin)에게만 터미널 노출 */}
-            {isAdmin && (
-              <div className="h-[22rem] bg-[#0f172a] rounded-[2rem] p-5 flex flex-col shadow-2xl border border-slate-700/60 shrink-0 relative overflow-hidden group">
-                {/* 상단 앰비언트 라이트 라인 효과 */}
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>
-                
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-4 px-2 relative z-10">
-                   <div className="flex items-center gap-3">
-                     <div className="p-2 bg-indigo-500/20 border border-indigo-500/30 rounded-xl text-indigo-400 shadow-inner">
-                       <Terminal size={16}/>
-                     </div>
-                     <div>
-                       <span className="text-sm font-black text-slate-200 tracking-wide block">
-                         AXGATE COMMAND CLI
-                       </span>
-                       <span className="text-[10px] text-slate-500 font-mono">Secure Root Access Session</span>
-                     </div>
-                   </div>
-                   <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-                     <span className="flex h-1.5 w-1.5 relative">
-                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                     </span>
-                     <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">System Online</span>
-                   </div>
-                </div>
-
-                {/* Filters & Scopes (다크 테마에 맞게 톤다운 및 항상 노출 연동) */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 px-2 relative z-10">
-                    <div className={`flex items-center gap-2 bg-slate-800/80 border rounded-xl px-3 py-2 shadow-inner transition-colors cursor-pointer ${batchScopeType === 'all' ? 'border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.15)]' : 'border-slate-700 hover:border-slate-500'}`}>
-                      <Filter size={14} className={batchScopeType === 'all' ? "text-indigo-400" : "text-slate-500"}/>
-                      <select 
-                        value={batchScopeType} 
-                        onChange={(e) => {
-                          setBatchScopeType(e.target.value);
-                          if (e.target.value === 'all') setBatchScopeUnit('');
-                        }} 
-                        className={`bg-transparent border-none text-xs font-bold focus:ring-0 outline-none cursor-pointer ${batchScopeType === 'all' ? 'text-indigo-300' : 'text-slate-400'}`}
-                      >
-                        <option value="all">전체 단지</option>
-                        <option value="dong">동별 선택</option>
-                        <option value="unit">세대별 선택</option>
-                      </select>
-                    </div>
-
-                    <div className={`flex items-center gap-2 bg-slate-800/80 border rounded-xl px-3 py-2 shadow-inner transition-colors cursor-pointer ${batchScopeType === 'dong' ? 'border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.15)]' : 'border-slate-700 hover:border-slate-500'}`}>
-                      <select 
-                        value={batchScopeDong} 
-                        onChange={(e) => {
-                          setBatchScopeDong(e.target.value);
-                          setBatchScopeType('dong');
-                          setBatchScopeUnit('');
-                        }}
-                        className={`bg-transparent border-none text-xs font-bold focus:ring-0 outline-none cursor-pointer ${batchScopeType === 'dong' ? 'text-indigo-300' : 'text-slate-400'}`}
-                      >
-                        {uniqueDongs.map(d => <option key={d} value={d} className="text-slate-800">{d}</option>)}
-                      </select>
-                    </div>
-
-                    <div className={`flex items-center gap-2 bg-slate-800/80 border rounded-xl px-3 py-2 shadow-inner transition-colors cursor-pointer ${batchScopeType === 'unit' ? 'border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.15)]' : 'border-slate-700 hover:border-slate-500'}`}>
-                      <select 
-                        value={batchScopeUnit} 
-                        onChange={(e) => {
-                          setBatchScopeUnit(e.target.value);
-                          if(e.target.value !== '') setBatchScopeType('unit');
-                        }}
-                        className={`bg-transparent border-none text-xs font-bold focus:ring-0 outline-none cursor-pointer ${batchScopeType === 'unit' ? 'text-indigo-300' : 'text-slate-400'}`}
-                      >
-                        <option value="" className="text-slate-500">호수 선택</option>
-                        {getUnitsByDong(batchScopeDong).map(u => (
-                          <option key={u} value={u} className="text-slate-800">{u.split(' ')[1]}</option>
-                        ))}
-                      </select>
-                    </div>
-                </div>
-                
-                {/* Log Output Area */}
-                <div className="flex-1 overflow-y-auto font-mono text-xs space-y-2.5 px-3 mb-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent relative z-10">
-                    {terminalLogs.slice().reverse().map((l, i) => (
-                      <div key={i} className={`${String(l).startsWith('>') ? 'text-indigo-300 font-bold' : String(l).includes('ERROR') || String(l).includes('실패') || String(l).includes('차단') ? 'text-rose-400' : 'text-slate-300'} flex items-start gap-3`}>
-                         <span className="text-slate-500 min-w-[65px] text-[10px] mt-0.5 shrink-0">[{new Date().toLocaleTimeString('en-US', {hour12:false})}]</span>
-                         <span className="leading-relaxed break-all">{String(l)}</span>
-                      </div>
-                    ))}
-                </div>
-
-                {/* Input Area (모던 프롬프트 입력창) */}
-                <div className="flex items-center gap-3 bg-black/40 px-4 py-3 rounded-xl border border-slate-700 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all shrink-0 relative z-10 shadow-inner">
-                   <span className="font-mono text-sm font-bold flex items-center gap-1.5">
-                     <span className="text-emerald-400">admin</span>
-                     <span className="text-slate-500">@</span>
-                     <span className="text-indigo-400">axgate</span>
-                     <span className="text-slate-500">~#</span>
-                   </span>
-                   <input 
-                     type="text" 
-                     value={command} 
-                     onChange={e => setCommand(e.target.value)} 
-                     onKeyDown={e => e.key === 'Enter' && handleCommandSubmit(e)} 
-                     className="bg-transparent border-none text-sm text-slate-200 w-full focus:ring-0 outline-none font-mono placeholder:text-slate-600" 
-                     placeholder="명령어 입력 (ex: reboot -f all)..." 
-                   />
-                   <button onClick={handleCommandSubmit} className="p-1.5 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-lg transition-colors">
-                     <Send size={16}/>
-                   </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Panel: Detail & Board */}
           <div className="xl:col-span-4 h-full">
-            <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 h-full flex flex-col relative min-h-[900px]">
+            <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 h-full flex flex-col relative min-h-[640px]">
               {selectedDeviceId ? (
                 <div className="flex-1 flex flex-col">
                    <div className="p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur z-10">
@@ -4521,40 +4626,9 @@ const SeparationDashboard = ({ onLog, terminalLogs: mainTerminalLogs, isAdmin, c
                    </div>
 
                    <div className="flex-1 overflow-y-auto scrollbar-thin p-8 space-y-8">
-                      {/* --- CPU/Memory Usage Display --- */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <CircularProgress 
-                          value={resourceData.cpu} 
-                          label="CPU Load" 
-                          icon={Cpu} 
-                          colorClass="text-blue-500"
-                          strokeColor="#3b82f6" 
-                        />
-                        <CircularProgress 
-                          value={resourceData.memory} 
-                          label="Memory" 
-                          icon={HardDrive} 
-                          colorClass="text-indigo-500"
-                          strokeColor="#6366f1" 
-                        />
-                      </div>
-                      
                       {/* 권한(isAdmin)에 따른 하단 제어부 렌더링 분기 */}
                       {isAdmin ? (
                         <>
-                          {/* 제어 버튼 그룹 (관리자용) */}
-                          <div className="grid grid-cols-3 gap-3">
-                             <button onClick={() => togglePower(selectedDeviceId)} className="py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-bold text-slate-600 hover:border-rose-200 hover:text-rose-600 hover:bg-rose-50 transition-all flex flex-col items-center gap-2 shadow-sm">
-                                <Power size={18} /> 재부팅
-                             </button>
-                             <button onClick={() => { setIsUpgrading(true); setTimeout(() => setIsUpgrading(false), 2000); }} className="py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold hover:bg-black transition-all flex flex-col items-center gap-2 shadow-lg">
-                                <RefreshCw size={18} className={isUpgrading ? 'animate-spin' : ''} /> 펌웨어
-                             </button>
-                             <button onClick={() => setShowUnitReportModal(true)} className="py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-bold text-slate-600 hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex flex-col items-center gap-2 shadow-sm">
-                                <Printer size={18} /> 리포팅
-                             </button>
-                          </div>
-
                           {/* 관리자 메모 (관리자 전용) */}
                           <div className="relative">
                              <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-500">
@@ -4707,6 +4781,7 @@ const SafetyInspectionDashboard = ({ onLog, complexId, complexList, safetyInspec
   const [landingSearch, setLandingSearch] = useState('');
   const [landingView, setLandingView] = useState('grid');
   const [checkedIds, setCheckedIds] = useState([]);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const [checklist, setChecklist] = useState(
     complexId ? (safetyInspectionData[complexId] || []) : []
@@ -4722,6 +4797,27 @@ const SafetyInspectionDashboard = ({ onLog, complexId, complexList, safetyInspec
     const updated = checklist.map(item => item.id === id ? { ...item, result: newResult } : item);
     setChecklist(updated);
     if (complexId && onDataChange) onDataChange(complexId, updated);
+  };
+
+  const getIncompleteItems = () => {
+    return checklist.filter(item => {
+      if (!item.result || item.result === '') return true;
+      if (item.result === '불량') return true;
+      return false;
+    });
+  };
+
+  const runAction = (action) => {
+    if (action === 'save') onLog && onLog('[SAFETY] 점검 결과가 저장되었습니다.');
+    else if (action === 'preview' || action === 'pdf') setShowPreview(true);
+  };
+
+  const handleAttemptAction = (action) => {
+    if (getIncompleteItems().length > 0) {
+      setPendingAction(action);
+    } else {
+      runAction(action);
+    }
   };
 
   const groupedList = checklist.reduce((acc, curr) => {
@@ -4907,6 +5003,96 @@ const SafetyInspectionDashboard = ({ onLog, complexId, complexList, safetyInspec
         />
       )}
 
+      {pendingAction && (() => {
+        const incomplete = getIncompleteItems();
+        const actionLabel = pendingAction === 'save' ? '결과 저장' : pendingAction === 'preview' ? '미리보기' : 'PDF 다운로드';
+        const allResolved = incomplete.length === 0;
+        return (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setPendingAction(null)} />
+            <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-200 overflow-hidden flex flex-col max-h-[88vh]">
+              <div className="px-8 py-6 border-b border-slate-100 bg-amber-50/60 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-amber-100 text-amber-600 shadow-inner">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-800">미완료 항목이 있습니다</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">"{actionLabel}" 진행 전에 아래 항목을 채워주세요. 양호로 변경하거나 해당없음으로 처리하세요.</p>
+                  </div>
+                </div>
+                <button onClick={() => setPendingAction(null)} className="p-2 hover:bg-amber-100 rounded-full text-slate-400 transition-colors"><X size={18} /></button>
+              </div>
+
+              <div className="px-6 py-3 bg-slate-50/60 border-b border-slate-100 flex items-center gap-3 text-[11px] font-bold text-slate-500 shrink-0">
+                <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg">총 미완료 <span className="text-amber-600">{incomplete.length}</span>건</span>
+                <span className="text-slate-300">•</span>
+                <span>불량 {checklist.filter(i => i.result === '불량').length}건</span>
+                <span>미기입 {checklist.filter(i => !i.result).length}건</span>
+              </div>
+
+              <div className="overflow-y-auto flex-1 p-6 space-y-3 custom-scrollbar">
+                {allResolved ? (
+                  <div className="text-center py-12">
+                    <CheckCircle2 size={40} className="mx-auto text-emerald-500 mb-3" />
+                    <p className="text-sm font-bold text-slate-700">모든 항목이 채워졌습니다.</p>
+                    <p className="text-xs text-slate-400 mt-1">아래 "{actionLabel} 진행" 버튼을 눌러 계속하세요.</p>
+                  </div>
+                ) : incomplete.map(item => (
+                  <div key={item.id || item.item} className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-amber-300 transition-colors">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800">{item.item}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{item.category} · 권고 {item.cycleRec} / 의무 {item.cycleMan}</p>
+                      </div>
+                      <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${
+                        item.result === '불량' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                        'bg-slate-100 text-slate-500'
+                      }`}>
+                        {item.result === '불량' ? '불량 — 조치 필요' : '미기입'}
+                      </span>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">점검 결과</label>
+                      <select
+                        value={item.result || ''}
+                        onChange={(e) => handleResultChange(item.id, e.target.value)}
+                        className={`w-full bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-400 cursor-pointer transition-colors ${
+                          item.result === '양호' ? 'text-emerald-600' :
+                          item.result === '불량' ? 'text-rose-600' :
+                          'text-slate-400'
+                        }`}
+                      >
+                        <option value="" disabled>선택</option>
+                        <option value="양호" className="text-emerald-600">양호</option>
+                        <option value="불량" className="text-rose-600">불량</option>
+                        <option value="해당없음" className="text-slate-400">해당없음</option>
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="px-8 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+                <p className="text-[11px] text-slate-400">변경 내용은 즉시 저장됩니다.</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setPendingAction(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                    닫기
+                  </button>
+                  <button
+                    onClick={() => { const action = pendingAction; setPendingAction(null); runAction(action); }}
+                    disabled={!allResolved}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200 transition-all disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 size={14} /> {actionLabel} 진행
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* 단지 정보 바 */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-4">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#f97316' }}>
@@ -4929,12 +5115,47 @@ const SafetyInspectionDashboard = ({ onLog, complexId, complexList, safetyInspec
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200/60 flex justify-between items-center">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
               <CalendarDays className="w-6 h-6" />
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">점검 일자</p>
-              <input type="date" value={inspectDate} onChange={(e) => setInspectDate(e.target.value)} className="font-bold text-slate-800 bg-transparent outline-none cursor-pointer hover:text-indigo-600 transition-colors" />
+              {(() => {
+                const past = generatePastInspectionDates(`safety-${complexId}`);
+                const sorted = [...past].sort();
+                const earlier = sorted.filter(d => d < inspectDate);
+                const later = sorted.filter(d => d > inspectDate);
+                const goPrev = () => { if (earlier.length) setInspectDate(earlier[earlier.length - 1]); };
+                const goNext = () => { if (later.length) setInspectDate(later[0]); };
+                return (
+                  <div className="flex items-center gap-0.5 -ml-1">
+                    <button
+                      type="button"
+                      onClick={goPrev}
+                      disabled={!earlier.length}
+                      className="p-0.5 rounded text-slate-300 hover:text-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title={earlier.length ? `이전 점검일 (${earlier[earlier.length - 1]})` : '더 이전 점검 기록 없음'}
+                    >
+                      <ChevronLeft size={16} strokeWidth={2.5}/>
+                    </button>
+                    <InspectionDatePicker
+                      value={inspectDate}
+                      onChange={setInspectDate}
+                      pastDates={sorted}
+                      accent="emerald"
+                    />
+                    <button
+                      type="button"
+                      onClick={goNext}
+                      disabled={!later.length}
+                      className="p-0.5 rounded text-slate-300 hover:text-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title={later.length ? `다음 점검일 (${later[0]})` : '더 최근 점검 기록 없음'}
+                    >
+                      <ChevronRight size={16} strokeWidth={2.5}/>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
           <div className="h-10 w-px bg-slate-100"></div>
@@ -4959,13 +5180,13 @@ const SafetyInspectionDashboard = ({ onLog, complexId, complexList, safetyInspec
             <ClipboardCheck className="w-6 h-6 text-indigo-600" /> 홈네트워크 안전점검표
           </h3>
           <div className="flex gap-2">
-            <button onClick={() => onLog && onLog('[SAFETY] 점검 결과가 저장되었습니다.')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
+            <button onClick={() => handleAttemptAction('save')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
               <CheckSquare className="w-4 h-4" /> 결과 저장
             </button>
-            <button onClick={() => setShowPreview(true)} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm flex items-center gap-2">
+            <button onClick={() => handleAttemptAction('preview')} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm flex items-center gap-2">
               <Eye className="w-4 h-4" /> 미리보기
             </button>
-            <button onClick={() => setShowPreview(true)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md flex items-center gap-2">
+            <button onClick={() => handleAttemptAction('pdf')} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md flex items-center gap-2">
               <Download className="w-4 h-4" /> PDF 다운로드
             </button>
           </div>
@@ -5377,598 +5598,6 @@ const ComplexManagementReportDashboard = ({ onLog, complexId, complexList, compl
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ReportDashboard = ({ complexId, complexList, reportData, onSelectComplex, isAdmin, onDataChange }) => {
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('전체');
-  const [landingSearch, setLandingSearch] = useState('');
-  const [landingView, setLandingView] = useState('grid');
-  const [checkedIds, setCheckedIds] = useState([]);
-  const [statusDropdownId, setStatusDropdownId] = useState(null);
-  const [previewReport, setPreviewReport] = useState(null);
-
-  const downloadReportPdf = () => {
-    const element = document.getElementById('pdf-report-preview-content');
-    if (!element) return;
-
-    const styles = Array.from(document.styleSheets).map(sheet => {
-      try { return Array.from(sheet.cssRules).map(r => r.cssText).join(''); }
-      catch { return ''; }
-    }).join('');
-
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${styles}</style>
-      <style>
-        @page { margin: 0; size: A4 portrait; }
-        body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      </style>
-    </head><body>${element.outerHTML}</body></html>`);
-    printWindow.document.close();
-    printWindow.onload = () => { printWindow.print(); };
-  };
-
-  const reports = complexId ? (reportData[complexId] || []) : [];
-
-  const handleStatusChange = (reportId, newStatus) => {
-    if (!isAdmin || !complexId) return;
-    const updated = reports.map(r => r.id === reportId ? { ...r, status: newStatus } : r);
-    onDataChange(complexId, updated);
-    setStatusDropdownId(null);
-  };
-
-  const normalizeType = (t) => t === '취약점 점검' ? '취약점 점검 보고서' : t === '안전 점검' ? '안전 점검 보고서' : t === '종합 보고서' ? '종합 점검 보고서' : t;
-  const normalizedReports = reports.filter(r => r.type !== '단지 보고서').map(r => ({ ...r, type: normalizeType(r.type) }));
-  const filteredReports = normalizedReports.filter(report => {
-    const matchSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        report.author.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchType = filterType === '전체' || report.type === filterType;
-    return matchSearch && matchType;
-  });
-
-  const groupedReports = filteredReports.reduce((acc, curr) => {
-    if (!acc[curr.type]) acc[curr.type] = [];
-    acc[curr.type].push(curr);
-    return acc;
-  }, {});
-
-  const handleSelectAll = (items) => {
-    const itemIds = items.map(i => i.id);
-    const allSelected = itemIds.every(id => selectedIds.includes(id));
-    
-    if (allSelected) {
-      setSelectedIds(selectedIds.filter(id => !itemIds.includes(id)));
-    } else {
-      const newIds = [...selectedIds];
-      itemIds.forEach(id => {
-        if (!newIds.includes(id)) newIds.push(id);
-      });
-      setSelectedIds(newIds);
-    }
-  };
-
-  const handleSelect = (id) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter(sId => sId !== id));
-    } else {
-      setSelectedIds([...selectedIds, id]);
-    }
-  };
-
-  // --- 랜딩 모드 (단지 미선택) ---
-  if (!complexId) {
-    const filtered = landingSearch.trim()
-      ? complexList.filter(c =>
-          c.name.toLowerCase().includes(landingSearch.toLowerCase()) ||
-          c.region.toLowerCase().includes(landingSearch.toLowerCase())
-        )
-      : complexList;
-
-    const toggleCheck = (id, e) => {
-      e.stopPropagation();
-      setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-    };
-    const allChecked = filtered.length > 0 && filtered.every(c => checkedIds.includes(c.id));
-    const toggleAll = () => {
-      if (allChecked) setCheckedIds(prev => prev.filter(id => !filtered.find(c => c.id === id)));
-      else setCheckedIds(prev => [...new Set([...prev, ...filtered.map(c => c.id)])]);
-    };
-
-    return (
-      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-        <div className="rounded-3xl p-8 shadow-sm border border-slate-300/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ backgroundColor: '#E2E8F0' }}>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><FileText className="w-6 h-6" /></div>
-            <div>
-              <h2 className="text-lg font-black text-slate-800">통합 보고서 센터 — 단지 선택</h2>
-              <p className="text-xs text-slate-400 mt-0.5">보고서를 확인할 단지를 선택하세요</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <input
-                type="text"
-                value={landingSearch}
-                onChange={(e) => setLandingSearch(e.target.value)}
-                placeholder="단지명 또는 지역 검색..."
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all placeholder:text-slate-400"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
-            </div>
-            <div className="flex bg-slate-100 rounded-xl p-1 gap-0.5">
-              <button onClick={() => setLandingView('grid')} className={`p-2 rounded-lg transition-all ${landingView === 'grid' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}><Grid3X3 className="w-4 h-4" /></button>
-              <button onClick={() => setLandingView('list')} className={`p-2 rounded-lg transition-all ${landingView === 'list' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}><ListFilter className="w-4 h-4" /></button>
-            </div>
-            <button
-              onClick={() => alert(checkedIds.length > 0 ? `선택된 ${checkedIds.length}개 보고서 일괄 다운로드 (데모)` : '전체 보고서 일괄 다운로드 (데모)')}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 whitespace-nowrap ${checkedIds.length > 0 ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-slate-900 text-white hover:bg-black'}`}
-            >
-              <Download className="w-4 h-4" /> 일괄 다운로드{checkedIds.length > 0 && ` (${checkedIds.length})`}
-            </button>
-          </div>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="text-center py-20 text-slate-400 font-medium bg-white rounded-3xl border border-slate-100 shadow-sm">
-            <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-            <p className="text-sm">검색 결과가 없습니다</p>
-          </div>
-        ) : landingView === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-            {filtered.map(c => {
-              const data = (reportData[c.id] || []).filter(r => r.type !== '단지 보고서').map(r => ({ ...r, type: normalizeType(r.type) }));
-              const typeCount = {};
-              data.forEach(r => { typeCount[r.type] = (typeCount[r.type] || 0) + 1; });
-              const isChecked = checkedIds.includes(c.id);
-              const statusColor = c.status === '정상' ? 'emerald' : c.status === '점검중' ? 'amber' : 'rose';
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => onSelectComplex(c.id)}
-                  className={`bg-white rounded-3xl border shadow-sm p-6 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all group ${isChecked ? 'border-purple-300 ring-2 ring-purple-100' : 'border-slate-200/60 hover:border-purple-200'}`}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => toggleCheck(c.id, e)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer mt-0.5 shrink-0"
-                      />
-                      <div>
-                        <h3 className="text-sm font-black text-slate-800 group-hover:text-purple-600 transition-colors">{c.name}</h3>
-                        <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" />{c.region}</p>
-                      </div>
-                    </div>
-                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold bg-${statusColor}-50 text-${statusColor}-600 border border-${statusColor}-100`}>{c.status}</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-purple-500" />
-                      <span className="text-sm font-black text-slate-800">{data.length}</span>
-                      <span className="text-[10px] font-bold text-slate-400">건</span>
-                    </div>
-                    <div className="flex gap-2">
-                      {Object.entries(typeCount).slice(0, 4).map(([type, cnt]) => (
-                        <span key={type} className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-100">{type.replace(' 점검 보고서', '').replace(' 보고서', '')} {cnt}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4 w-12 text-center">
-                    <input type="checkbox" checked={allChecked} onChange={toggleAll} className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
-                  </th>
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">단지명</th>
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">지역</th>
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상태</th>
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">보고서 수</th>
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">최근 보고서</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">상세</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filtered.map(c => {
-                  const data = (reportData[c.id] || []).filter(r => r.type !== '단지 보고서').map(r => ({ ...r, type: normalizeType(r.type) }));
-                  const latest = data[0];
-                  const isChecked = checkedIds.includes(c.id);
-                  return (
-                    <tr key={c.id} className={`transition-colors cursor-pointer ${isChecked ? 'bg-purple-50/50' : 'hover:bg-slate-50/70'}`} onClick={() => onSelectComplex(c.id)}>
-                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" checked={isChecked} onChange={(e) => toggleCheck(c.id, e)} className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="text-sm font-bold text-slate-800 hover:text-purple-600 transition-colors">{c.name}</span>
-                      </td>
-                      <td className="px-4 py-4 text-xs text-slate-500">{c.region}</td>
-                      <td className="px-4 py-4 text-center">
-                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${c.status === '정상' ? 'bg-emerald-50 text-emerald-600' : c.status === '점검중' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>{c.status}</span>
-                      </td>
-                      <td className="px-4 py-4 text-center text-sm font-black text-sky-600">{data.length}건</td>
-                      <td className="px-4 py-4 text-xs text-slate-500 truncate max-w-[200px]">{latest ? `${latest.date} — ${latest.title}` : '-'}</td>
-                      <td className="px-6 py-4 text-center">
-                        <button onClick={() => onSelectComplex(c.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-all"><ChevronRight className="w-4 h-4" /></button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // --- 상세 모드 (단지 선택됨) ---
-  const currentComplex = complexList.find(c => c.id === complexId);
-  const totalReports = normalizedReports.length;
-  const typeCounts = {};
-  normalizedReports.forEach(r => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1; });
-
-  return (
-    <div className="flex flex-col gap-8 max-w-[1600px] mx-auto animate-in fade-in duration-500" onClick={() => statusDropdownId && setStatusDropdownId(null)}>
-
-      {/* 보고서 미리보기 모달 */}
-      {previewReport && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setPreviewReport(null)} />
-          <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
-            {/* 모달 헤더 */}
-            <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start shrink-0">
-              <div className="flex-1 mr-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">{previewReport.type}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                    previewReport.status === '완료' ? 'text-emerald-600 bg-emerald-50' :
-                    previewReport.status === '점검중' ? 'text-amber-600 bg-amber-50' :
-                    'text-slate-500 bg-slate-50'
-                  }`}>{previewReport.status || '완료'}</span>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800">{previewReport.title}</h3>
-              </div>
-              <button onClick={() => setPreviewReport(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors shrink-0"><X size={20} /></button>
-            </div>
-
-            {/* 문서 정보 */}
-            <div className="px-8 py-4 border-b border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">문서 번호</p>
-                <p className="text-sm font-mono font-bold text-slate-700">{previewReport.id}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">등록 일자</p>
-                <p className="text-sm font-bold text-slate-700">{previewReport.date}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">작성자</p>
-                <p className="text-sm font-bold text-slate-700">{previewReport.author}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">파일 용량</p>
-                <p className="text-sm font-bold text-slate-700">{previewReport.size}</p>
-              </div>
-            </div>
-
-            {/* 미리보기 본문 */}
-            <div className="flex-1 overflow-y-auto p-8">
-              <div id="pdf-report-preview-content" className="bg-slate-50 rounded-2xl border border-slate-200 p-8">
-                {/* 문서 헤더 영역 */}
-                <div className="text-center mb-8 pb-6 border-b border-slate-200">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">AXGATE SAFERHOME</p>
-                  <h4 className="text-xl font-black text-slate-800 mb-1">{previewReport.title}</h4>
-                  <p className="text-xs text-slate-500">{currentComplex?.name} · {currentComplex?.region}</p>
-                </div>
-
-                {/* 점검 개요 */}
-                <div className="mb-6">
-                  <h5 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-slate-400 rounded-full"></div>
-                    점검 개요
-                  </h5>
-                  <table className="w-full text-sm border-collapse">
-                    <tbody>
-                      <tr className="border-b border-slate-200">
-                        <td className="py-2.5 text-xs font-bold text-slate-500 w-28">점검 유형</td>
-                        <td className="py-2.5 text-xs text-slate-700">{previewReport.type}</td>
-                        <td className="py-2.5 text-xs font-bold text-slate-500 w-28">점검 일자</td>
-                        <td className="py-2.5 text-xs text-slate-700">{previewReport.date}</td>
-                      </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="py-2.5 text-xs font-bold text-slate-500">점검 대상</td>
-                        <td className="py-2.5 text-xs text-slate-700">{currentComplex?.name}</td>
-                        <td className="py-2.5 text-xs font-bold text-slate-500">담당자</td>
-                        <td className="py-2.5 text-xs text-slate-700">{previewReport.author}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 text-xs font-bold text-slate-500">점검 결과</td>
-                        <td colSpan={3} className="py-2.5 text-xs text-slate-700">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            previewReport.status === '완료' ? 'bg-emerald-50 text-emerald-600' :
-                            previewReport.status === '점검중' ? 'bg-amber-50 text-amber-600' :
-                            'bg-slate-100 text-slate-500'
-                          }`}>{previewReport.status || '완료'}</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* 세부 내용 */}
-                <div className="mb-6">
-                  <h5 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-slate-400 rounded-full"></div>
-                    세부 점검 내용
-                  </h5>
-                  <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
-                    <p>본 보고서는 {currentComplex?.name}에 대한 {previewReport.type} 결과를 기록한 문서입니다.</p>
-                    <p>점검 항목 전반에 걸쳐 홈네트워크 시스템의 보안 상태를 평가하였으며, 취약 사항에 대한 조치 방안을 포함하고 있습니다.</p>
-                    <p>세부 점검 결과 및 조치 이력은 별첨 자료를 참고하시기 바랍니다.</p>
-                  </div>
-                </div>
-
-                {/* 비고 */}
-                <div className="bg-white rounded-xl border border-slate-200 p-4">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">비고</p>
-                  <p className="text-xs text-slate-500">본 문서는 데모용 미리보기입니다. 실제 환경에서는 전체 보고서 내용이 표시됩니다.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* 모달 하단 */}
-            <div className="px-8 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
-              <button onClick={() => setPreviewReport(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors">닫기</button>
-              <button onClick={() => downloadReportPdf(previewReport)} className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all flex items-center gap-1.5">
-                <Download className="w-3.5 h-3.5" /> PDF 다운로드
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 단지 정보 바 */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/60 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#f97316' }}>
-          <Building2 className="w-5 h-5 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-800 truncate">{currentComplex?.name}</p>
-          <div className="flex items-center gap-2.5 mt-0.5">
-            <span className="flex items-center gap-1 text-[11px] text-slate-400"><MapPin className="w-3 h-3" />{currentComplex?.region}</span>
-            <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }}><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentComplex?.status === '정상' ? '#10b981' : currentComplex?.status === '점검중' ? '#f59e0b' : '#64748b' }} />상태: {currentComplex?.status}</span>
-            <span className="text-[11px] text-slate-400">총 {currentComplex?.dongCount || 0}동 / {currentComplex?.totalUnits || 0}세대</span>
-          </div>
-        </div>
-        <button onClick={() => onSelectComplex(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all shrink-0">
-          <ArrowLeft className="w-3.5 h-3.5" /> 목록
-        </button>
-      </div>
-
-      {/* 통계 요약 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div
-          onClick={() => setFilterType('전체')}
-          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '전체' ? 'border-slate-400 ring-2 ring-slate-100 shadow-md transform scale-[1.02]' : 'border-slate-100 shadow-sm hover:border-slate-300 hover:shadow-md'}`}
-        >
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">총 누적 보고서</p>
-            <p className="text-3xl font-black text-slate-800 mt-1">{totalReports}<span className="text-sm font-medium text-slate-500 ml-1">건</span></p>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '전체' ? 'bg-slate-200 text-slate-700' : 'bg-slate-50 text-slate-500'}`}><FileText /></div>
-        </div>
-
-        <div
-          onClick={() => setFilterType('취약점 점검 보고서')}
-          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '취약점 점검 보고서' ? 'border-indigo-500 ring-2 ring-indigo-100 shadow-md transform scale-[1.02]' : 'border-indigo-100 shadow-sm hover:border-indigo-300 hover:shadow-md'}`}
-        >
-          <div>
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">취약점 점검 보고서</p>
-            <p className="text-3xl font-black text-indigo-600 mt-1">{typeCounts['취약점 점검 보고서'] || 0}<span className="text-sm font-medium text-indigo-600/60 ml-1">건</span></p>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '취약점 점검 보고서' ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-50 text-indigo-600'}`}><AlertTriangle /></div>
-        </div>
-
-        <div
-          onClick={() => setFilterType('안전 점검 보고서')}
-          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '안전 점검 보고서' ? 'border-emerald-500 ring-2 ring-emerald-100 shadow-md transform scale-[1.02]' : 'border-emerald-100 shadow-sm hover:border-emerald-300 hover:shadow-md'}`}
-        >
-          <div>
-            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">안전 점검 보고서</p>
-            <p className="text-3xl font-black text-emerald-600 mt-1">{typeCounts['안전 점검 보고서'] || 0}<span className="text-sm font-medium text-emerald-600/60 ml-1">건</span></p>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '안전 점검 보고서' ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-50 text-emerald-600'}`}><ShieldCheck /></div>
-        </div>
-
-        <div
-          onClick={() => setFilterType('종합 점검 보고서')}
-          className={`bg-white p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between ${filterType === '종합 점검 보고서' ? 'border-orange-500 ring-2 ring-orange-100 shadow-md transform scale-[1.02]' : 'border-orange-100 shadow-sm hover:border-orange-300 hover:shadow-md'}`}
-        >
-          <div>
-            <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">종합 점검 보고서</p>
-            <p className="text-3xl font-black text-orange-600 mt-1">{typeCounts['종합 점검 보고서'] || 0}<span className="text-sm font-medium text-orange-600/60 ml-1">건</span></p>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${filterType === '종합 점검 보고서' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-600'}`}><Layers /></div>
-        </div>
-      </div>
-
-      {/* 보고서 목록 */}
-      <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 flex flex-col">
-        <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 rounded-t-[2.5rem] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
-            <FileDown className="w-6 h-6 text-indigo-600" /> {currentComplex?.name} 점검 보고서 이력
-          </h3>
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="보고서 제목 또는 작성자 검색"
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
-            </div>
-            <div className="relative shrink-0">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="appearance-none w-[130px] px-4 py-2.5 pl-10 pr-8 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
-              >
-                <option value="전체">모든 유형</option>
-                <option value="취약점 점검 보고서">취약점 점검 보고서</option>
-                <option value="안전 점검 보고서">안전 점검 보고서</option>
-                <option value="종합 점검 보고서">종합 점검 보고서</option>
-              </select>
-              <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-            </div>
-            <button
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 whitespace-nowrap ${
-                selectedIds.length > 0
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/20'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              }`}
-              disabled={selectedIds.length === 0}
-            >
-              <Download className="w-4 h-4" /> 선택 다운로드 {selectedIds.length > 0 && `(${selectedIds.length})`}
-            </button>
-          </div>
-        </div>
-
-        <div className="p-8">
-          <div className="space-y-8">
-            {Object.keys(groupedReports).length === 0 ? (
-              <div className="text-center py-16 text-slate-400 font-medium bg-slate-50 rounded-3xl border border-slate-100">
-                검색 결과가 없습니다.
-              </div>
-            ) : (
-              Object.entries(groupedReports).map(([category, items], catIdx) => {
-                const isAllSelected = items.length > 0 && items.every(item => selectedIds.includes(item.id));
-
-                return (
-                  <div key={catIdx} className="bg-slate-50 rounded-3xl p-6 border border-slate-200/60">
-                    <h4 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
-                      <div className={`w-1.5 h-4 rounded-full ${
-                        category === '취약점 점검 보고서' ? 'bg-indigo-500' :
-                        category === '안전 점검 보고서' ? 'bg-emerald-500' :
-                        'bg-orange-500'
-                      }`}></div>
-                      {category}
-                      <span className="text-xs font-bold text-slate-400 ml-1">({items.length}건)</span>
-                    </h4>
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-visible">
-                      <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50/50 border-b border-slate-100">
-                          <tr>
-                            <th className="px-6 py-4 w-12 text-center">
-                              <input
-                                type="checkbox"
-                                checked={isAllSelected}
-                                onChange={() => handleSelectAll(items)}
-                                className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                              />
-                            </th>
-                            <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-36">문서 번호</th>
-                            <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-36">등록 일자</th>
-                            <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">보고서 제목</th>
-                            <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-24">작성자</th>
-                            <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-24">용량</th>
-                            <th className="px-4 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-28 text-center">상태</th>
-                            <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider w-32 text-center">다운로드</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {items.map((report, idx) => (
-                            <tr key={idx} className={`transition-colors group ${selectedIds.includes(report.id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50/70'}`}>
-                              <td className="px-6 py-5 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedIds.includes(report.id)}
-                                  onChange={() => handleSelect(report.id)}
-                                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                />
-                              </td>
-                              <td className="px-4 py-5 text-xs font-mono font-bold text-slate-500">{report.id}</td>
-                              <td className="px-4 py-5 text-xs font-bold text-slate-600">{report.date}</td>
-                              <td className="px-4 py-5 text-sm font-bold text-slate-800 cursor-pointer hover:text-indigo-600 transition-colors" onClick={(e) => { e.stopPropagation(); setPreviewReport(report); }}>
-                                <div className="flex items-center gap-3">
-                                  <FileText className={`w-4 h-4 transition-colors ${selectedIds.includes(report.id) ? 'text-indigo-500' : 'text-slate-400 group-hover:text-indigo-500'}`} />
-                                  {report.title}
-                                </div>
-                              </td>
-                              <td className="px-4 py-5 text-xs font-bold text-slate-600">{report.author}</td>
-                              <td className="px-4 py-5 text-xs font-mono font-medium text-slate-500">{report.size}</td>
-                              <td className="px-4 py-5 text-center relative">
-                                {isAdmin ? (
-                                  <div className="relative inline-block">
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setStatusDropdownId(statusDropdownId === report.id ? null : report.id); }}
-                                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all border ${
-                                        report.status === '완료' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' :
-                                        report.status === '점검중' ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100' :
-                                        'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-                                      }`}
-                                    >
-                                      {report.status || '완료'} <ChevronDown className="w-3 h-3 inline-block ml-0.5 -mt-px" />
-                                    </button>
-                                    {statusDropdownId === report.id && (
-                                      <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[100px]">
-                                        {['완료', '점검중', '대기'].map(s => (
-                                          <button
-                                            key={s}
-                                            onClick={(e) => { e.stopPropagation(); handleStatusChange(report.id, s); }}
-                                            className={`w-full px-3 py-2 text-left text-xs font-bold transition-colors flex items-center gap-2 ${
-                                              report.status === s ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'
-                                            }`}
-                                          >
-                                            <span className={`w-1.5 h-1.5 rounded-full ${
-                                              s === '완료' ? 'bg-emerald-500' : s === '점검중' ? 'bg-amber-500' : 'bg-slate-400'
-                                            }`} />
-                                            {s}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                                    report.status === '완료' ? 'bg-emerald-50 text-emerald-600' :
-                                    report.status === '점검중' ? 'bg-amber-50 text-amber-600' :
-                                    'bg-slate-50 text-slate-500'
-                                  }`}>
-                                    {report.status || '완료'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-6 py-5 text-center">
-                                <button onClick={() => setPreviewReport(report)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all shadow-sm">
-                                  <Download className="w-3.5 h-3.5" /> PDF
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })
-            )}
           </div>
         </div>
       </div>
@@ -6496,10 +6125,6 @@ export default function App() {
   );
   const [selectedVulnComplexId, setSelectedVulnComplexId] = useState(null);
   const [selectedSafetyComplexId, setSelectedSafetyComplexId] = useState(null);
-  const [reportData, setReportData] = useState(() =>
-    generateAllReportData(INITIAL_COMPLEX_LIST)
-  );
-  const [selectedReportComplexId, setSelectedReportComplexId] = useState(null);
   // 단지 추가 시 데이터 자동 생성
   useEffect(() => {
     setVulnerabilityData(prev => {
@@ -6510,11 +6135,6 @@ export default function App() {
     setSafetyInspectionData(prev => {
       const updated = { ...prev };
       complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateSafetyDataForComplex(c.id); });
-      return updated;
-    });
-    setReportData(prev => {
-      const updated = { ...prev };
-      complexList.forEach(c => { if (!updated[c.id]) updated[c.id] = generateReportsForComplex(c.id, c.name); });
       return updated;
     });
   }, [complexList]);
@@ -6538,7 +6158,6 @@ export default function App() {
   useEffect(() => { if (selectedComplexId) pushRecent(selectedComplexId, 'complex_detail'); }, [selectedComplexId]);
   useEffect(() => { if (selectedVulnComplexId) pushRecent(selectedVulnComplexId, 'vulnerability'); }, [selectedVulnComplexId]);
   useEffect(() => { if (selectedSafetyComplexId) pushRecent(selectedSafetyComplexId, 'safety_inspection'); }, [selectedSafetyComplexId]);
-  useEffect(() => { if (selectedReportComplexId) pushRecent(selectedReportComplexId, 'report'); }, [selectedReportComplexId]);
   // 로그아웃 — 모든 상태 초기화
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -6553,10 +6172,8 @@ export default function App() {
     setComplexListRaw(INITIAL_COMPLEX_LIST);
     setVulnerabilityData(generateAllVulnerabilityData(INITIAL_COMPLEX_LIST));
     setSafetyInspectionData(generateAllSafetyInspectionData(INITIAL_COMPLEX_LIST));
-    setReportData(generateAllReportData(INITIAL_COMPLEX_LIST));
     setSelectedVulnComplexId(null);
     setSelectedSafetyComplexId(null);
-    setSelectedReportComplexId(null);
     setRecentHistory([]);
   };
 
@@ -6592,7 +6209,6 @@ export default function App() {
       if (!prev.complexId) {
         setSelectedVulnComplexId(null);
         setSelectedSafetyComplexId(null);
-        setSelectedReportComplexId(null);
       }
     };
     window.addEventListener('popstate', handlePop);
@@ -6661,13 +6277,6 @@ export default function App() {
         }
         return '홈네트워크 안전점검';
       }
-      case 'report': {
-        if (selectedReportComplexId) {
-          const name = complexList.find(c => c.id === selectedReportComplexId)?.name || '';
-          return `${name} — 통합 보고서 센터`;
-        }
-        return '통합 보고서 센터';
-      }
       case 'account_management': return '계정 및 권한 관리';
       default: return '보안 관제 시스템';
     }
@@ -6680,10 +6289,6 @@ export default function App() {
   const managementItems = [
     { id: 'vulnerability', icon: AlertTriangle, label: '취약점 분석 및 조치', color: '#EF4444' },
     { id: 'safety_inspection', icon: ClipboardCheck, label: '홈네트워크 안전점검', color: '#EF4444' },
-  ];
-
-  const reportItems = [
-    { id: 'report', icon: FileText, label: '통합 보고서 센터', color: '#10B981' },
   ];
 
   const settingsItems = [
@@ -6705,7 +6310,6 @@ export default function App() {
           }
           if (menu.id === 'vulnerability') setSelectedVulnComplexId(currentId || null);
           if (menu.id === 'safety_inspection') setSelectedSafetyComplexId(currentId || null);
-          if (menu.id === 'report') setSelectedReportComplexId(currentId || null);
         }}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150 outline-none text-left"
         style={{
@@ -6727,7 +6331,6 @@ export default function App() {
     complex_detail: { label: '단지상세' },
     vulnerability: { label: '취약점' },
     safety_inspection: { label: '안전점검' },
-    report: { label: '보고서' },
   };
 
   const filteredComplexes = sidebarComplexSearch.trim()
@@ -6808,7 +6411,6 @@ export default function App() {
                         setSelectedComplexId(null);
                         setSelectedVulnComplexId(null);
                         setSelectedSafetyComplexId(null);
-                        setSelectedReportComplexId(null);
                       }}
                       className="p-0.5 rounded-full transition-all shrink-0 ml-1"
                       style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.15)' }}
@@ -6880,7 +6482,7 @@ export default function App() {
         <div className="h-16 flex items-center px-5 shrink-0" style={{ backgroundColor: '#152038', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div
             className="flex items-center gap-2.5 cursor-pointer select-none"
-            onClick={() => { setActiveMenu('complex_list'); setSelectedComplexId(null); setSelectedVulnComplexId(null); setSelectedSafetyComplexId(null); setSelectedReportComplexId(null); setResetKey(k => k + 1); }}
+            onClick={() => { setActiveMenu('complex_list'); setSelectedComplexId(null); setSelectedVulnComplexId(null); setSelectedSafetyComplexId(null); setResetKey(k => k + 1); }}
           >
             <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #2563EB, #1B2A4A)' }}>
               <Shield size={14} className="text-white" />
@@ -6896,7 +6498,6 @@ export default function App() {
           {[
             { label: 'DASHBOARDS', items: menuItems, hasSubMenu: true },
             { label: 'MANAGEMENT', items: managementItems },
-            { label: 'REPORT', items: reportItems },
             { label: 'SETTINGS', items: settingsItems },
           ].map(({ label, items, hasSubMenu }) => (
             <div key={label} className="mb-6">
@@ -6932,7 +6533,6 @@ export default function App() {
                             if (selectedComplexId === cId) { setSelectedComplexId(null); setActiveMenu('complex_list'); }
                             if (selectedVulnComplexId === cId) setSelectedVulnComplexId(null);
                             if (selectedSafetyComplexId === cId) setSelectedSafetyComplexId(null);
-                            if (selectedReportComplexId === cId) setSelectedReportComplexId(null);
                           }}
                           className="ml-auto p-0.5 rounded opacity-0 group-hover/recent:opacity-100 transition-all shrink-0"
                           style={{ color: '#475569' }}
@@ -6954,7 +6554,6 @@ export default function App() {
                                 if (v === 'complex_detail') { setSelectedComplexId(cId); setActiveMenu('complex_detail'); }
                                 else if (v === 'vulnerability') { setSelectedVulnComplexId(cId); setActiveMenu('vulnerability'); }
                                 else if (v === 'safety_inspection') { setSelectedSafetyComplexId(cId); setActiveMenu('safety_inspection'); }
-                                else if (v === 'report') { setSelectedReportComplexId(cId); setActiveMenu('report'); }
                               }}
                               className="px-2 py-0.5 rounded text-[9px] font-bold transition-all hover:opacity-80"
                               style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.65)' }}
@@ -7063,7 +6662,7 @@ export default function App() {
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar" style={{ backgroundColor: '#F8FAFC' }}>
           {activeMenu === 'complex_list' && <ComplexListDashboard key={resetKey} onNavigate={setActiveMenu} onSelectComplex={handleSelectComplex} complexList={complexList} setComplexList={setComplexList} />}
-          {activeMenu === 'complex_detail' && <ComplexDetailDashboard activeTab={activeDetailTab} onTabChange={setActiveDetailTab} onNavigate={(menu) => { setActiveMenu(menu); if (menu === 'complex_list') setSelectedComplexId(null); if (menu === 'report') setSelectedReportComplexId(selectedComplexId || null); if (menu === 'vulnerability') setSelectedVulnComplexId(selectedComplexId || null); if (menu === 'safety_inspection') setSelectedSafetyComplexId(selectedComplexId || null); }} complexId={selectedComplexId} complexList={complexList} setComplexList={setComplexList} isMounted={isMounted} onLog={handleLogUpdate} terminalLogs={terminalLogs} />}
+          {activeMenu === 'complex_detail' && <ComplexDetailDashboard activeTab={activeDetailTab} onTabChange={setActiveDetailTab} onNavigate={(menu) => { setActiveMenu(menu); if (menu === 'complex_list') setSelectedComplexId(null); if (menu === 'vulnerability') setSelectedVulnComplexId(selectedComplexId || null); if (menu === 'safety_inspection') setSelectedSafetyComplexId(selectedComplexId || null); }} complexId={selectedComplexId} complexList={complexList} setComplexList={setComplexList} isMounted={isMounted} onLog={handleLogUpdate} terminalLogs={terminalLogs} />}
           {activeMenu === 'vulnerability' && (
             <VulnerabilityDashboard
               onLog={handleLogUpdate}
@@ -7082,16 +6681,6 @@ export default function App() {
               safetyInspectionData={safetyInspectionData}
               onDataChange={(cId, list) => setSafetyInspectionData(prev => ({ ...prev, [cId]: list }))}
               onSelectComplex={setSelectedSafetyComplexId}
-            />
-          )}
-          {activeMenu === 'report' && (
-            <ReportDashboard
-              complexId={selectedReportComplexId}
-              complexList={complexList}
-              reportData={reportData}
-              onSelectComplex={setSelectedReportComplexId}
-              isAdmin={isAdmin}
-              onDataChange={(cId, list) => setReportData(prev => ({ ...prev, [cId]: list }))}
             />
           )}
           {activeMenu === 'account_management' && <AccountManagementDashboard onLog={handleLogUpdate} />}
